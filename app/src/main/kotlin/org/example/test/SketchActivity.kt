@@ -1,7 +1,10 @@
 package org.example.test
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 
 class SketchActivity : AppCompatActivity() {
 
@@ -30,7 +33,7 @@ class SketchActivity : AppCompatActivity() {
             }
 
             override fun onPartsChanged() {
-                
+                // Hook for future persistence (e.g. saving the sketch to disk).
             }
         }
     }
@@ -41,6 +44,7 @@ class SketchActivity : AppCompatActivity() {
             hasParts = canvas.parts.isNotEmpty(),
             onPick = { kind -> addPart(kind, x, y) },
             onGeneratePrompt = { generatePrompt() },
+            onExportProject = { exportProject() },
             onClear = { canvas.clearAll() },
         )
     }
@@ -63,5 +67,25 @@ class SketchActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
         val prompt = PromptGenerator.build(canvas.parts, canvas.width, canvas.height, density)
         showPromptDialog(this, prompt)
+    }
+
+    /** Fills the boilerplate template with a real layout generated from the sketch, then shares the zip. */
+    private fun exportProject() {
+        val density = resources.displayMetrics.density
+        val zip = CodeGenerator.generateProjectZip(
+            context = this,
+            parts = canvas.parts,
+            canvasWidthPx = canvas.width,
+            canvasHeightPx = canvas.height,
+            density = density,
+        )
+        val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", zip)
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/zip"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        Toast.makeText(this, "Project generated \u2014 choose where to save it", Toast.LENGTH_SHORT).show()
+        startActivity(Intent.createChooser(shareIntent, "Export generated project"))
     }
 }

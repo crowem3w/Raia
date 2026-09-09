@@ -2,7 +2,7 @@ package org.example.test
 
 import kotlin.math.roundToInt
 
-
+/** Turns the parts on the canvas into a natural-language prompt for an AI coding tool. */
 object PromptGenerator {
 
     fun build(parts: List<SketchPart>, canvasWidthPx: Int, canvasHeightPx: Int, density: Float): String {

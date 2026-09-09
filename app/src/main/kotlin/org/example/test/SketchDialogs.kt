@@ -15,18 +15,18 @@ import android.widget.Toast
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 
-
+/** Modal shown on long-press: pick a part to drop at that spot, or generate the prompt. */
 fun showToolsSheet(
     context: Context,
     hasParts: Boolean,
     onPick: (PartKind) -> Unit,
     onGeneratePrompt: () -> Unit,
+    onExportProject: () -> Unit,
     onClear: () -> Unit,
 ) {
     val dialog = BottomSheetDialog(context)
     val d = context.resources.displayMetrics.density
     fun dp(v: Int) = (v * d).toInt()
-    val appFont = Fonts.dreamAvenue(context)
 
     val root = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
@@ -36,7 +36,7 @@ fun showToolsSheet(
     root.addView(TextView(context).apply {
         text = "Add to sketch"
         textSize = 18f
-        setTypeface(appFont, Typeface.BOLD)
+        setTypeface(typeface, Typeface.BOLD)
         setPadding(0, 0, 0, dp(12))
     })
 
@@ -46,7 +46,6 @@ fun showToolsSheet(
             text = kind.displayLabel
             isAllCaps = false
             textSize = 12f
-            typeface = appFont
             layoutParams = GridLayout.LayoutParams().apply {
                 width = dp(104)
                 height = GridLayout.LayoutParams.WRAP_CONTENT
@@ -64,7 +63,6 @@ fun showToolsSheet(
         text = "Generate prompt"
         isAllCaps = false
         isEnabled = hasParts
-        typeface = appFont
         layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -75,11 +73,24 @@ fun showToolsSheet(
         }
     })
 
+    root.addView(MaterialButton(context).apply {
+        text = "Export project (.zip)"
+        isAllCaps = false
+        isEnabled = hasParts
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(8) }
+        setOnClickListener {
+            onExportProject()
+            dialog.dismiss()
+        }
+    })
+
     if (hasParts) {
         root.addView(MaterialButton(context).apply {
             text = "Clear canvas"
             isAllCaps = false
-            typeface = appFont
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -95,7 +106,7 @@ fun showToolsSheet(
     dialog.show()
 }
 
-
+/** Tapping an existing part on the canvas: rename its label or delete it. */
 fun showPartOptionsDialog(
     context: Context,
     part: SketchPart,
@@ -104,36 +115,31 @@ fun showPartOptionsDialog(
 ) {
     val d = context.resources.displayMetrics.density
     val pad = (16 * d).toInt()
-    val appFont = Fonts.dreamAvenue(context)
     val input = EditText(context).apply {
         setText(part.label)
         hint = part.kind.displayLabel
         inputType = InputType.TYPE_CLASS_TEXT
         setPadding(pad, pad, pad, pad)
-        typeface = appFont
     }
-    val dialog = AlertDialog.Builder(context)
+    AlertDialog.Builder(context)
         .setTitle(part.kind.displayLabel)
         .setView(input)
         .setPositiveButton("Save") { _, _ -> onRename(input.text.toString()) }
         .setNegativeButton("Delete") { _, _ -> onDelete() }
         .setNeutralButton("Cancel", null)
         .show()
-    applyFontToAlertDialog(dialog, appFont)
 }
 
-
+/** Shows the generated prompt text with a Copy button. */
 fun showPromptDialog(context: Context, prompt: String) {
     val d = context.resources.displayMetrics.density
     val pad = (20 * d).toInt()
-    val appFont = Fonts.dreamAvenue(context)
     val textView = TextView(context).apply {
         text = prompt
         setTextIsSelectable(true)
         setPadding(pad, pad, pad, pad)
-        typeface = appFont
     }
-    val dialog = AlertDialog.Builder(context)
+    AlertDialog.Builder(context)
         .setTitle("Prompt")
         .setView(ScrollView(context).apply { addView(textView) })
         .setPositiveButton("Copy") { _, _ ->
@@ -143,16 +149,4 @@ fun showPromptDialog(context: Context, prompt: String) {
         }
         .setNegativeButton("Close", null)
         .show()
-    applyFontToAlertDialog(dialog, appFont)
-}
-
-
-private fun applyFontToAlertDialog(dialog: AlertDialog, font: Typeface) {
-    val titleId = dialog.context.resources.getIdentifier("alertTitle", "id", "android")
-    if (titleId != 0) {
-        dialog.findViewById<TextView>(titleId)?.typeface = font
-    }
-    dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.typeface = font
-    dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.typeface = font
-    dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.typeface = font
 }

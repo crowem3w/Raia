@@ -2,14 +2,14 @@ package org.example.test
 
 import android.graphics.Color
 
-
-
-
-
-
-
-
-
+/**
+ * One kind of Material 3 part the user can drop onto the canvas.
+ *
+ * [defaultW]/[defaultH] are in dp (scaled to real pixels when a part is placed).
+ * [fillColor]/[cornerRadius] are just enough to sketch the part's shape, not a real
+ * implementation of the component. [promptNoun] is the phrase used when describing
+ * the part in the generated prompt.
+ */
 enum class PartKind(
     val displayLabel: String,
     val defaultW: Float,

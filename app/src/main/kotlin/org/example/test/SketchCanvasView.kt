@@ -12,13 +12,13 @@ import android.view.MotionEvent
 import android.view.View
 import kotlin.math.max
 
-
-
-
-
-
-
-
+/**
+ * A blank white canvas you sketch Material 3 parts onto.
+ *
+ * - Long-press empty space -> [Listener.onLongPressEmptySpace] (the host opens the tools sheet).
+ * - Tap an existing part -> [Listener.onPartTapped] (the host opens rename/delete options).
+ * - Drag an existing part -> moves it; [Listener.onPartsChanged] fires once the drag ends.
+ */
 class SketchCanvasView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -42,12 +42,10 @@ class SketchCanvasView @JvmOverloads constructor(
         strokeWidth = 2f * density
         color = Color.parseColor("#6750A4")
     }
-    private val appFont = Fonts.dreamAvenue(context)
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#1D1B20")
         textSize = 13f * density
         textAlign = Paint.Align.CENTER
-        typeface = appFont
     }
     private val selectionPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -59,7 +57,6 @@ class SketchCanvasView @JvmOverloads constructor(
         color = Color.parseColor("#79747E")
         textSize = 14f * density
         textAlign = Paint.Align.CENTER
-        typeface = appFont
     }
 
     private var selected: SketchPart? = null
