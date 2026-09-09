@@ -1,11 +1,3 @@
-/*
- * App module. Converted from the plain-JVM 'application' plugin to the
- * Android application plugin. No separate Kotlin plugin is applied:
- * AGP 9's built-in Kotlin support handles Kotlin sources automatically,
- * and actually errors out if org.jetbrains.kotlin.android is applied
- * alongside it.
- */
-
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -39,5 +31,5 @@ kotlin {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.material)
+    implementation("com.google.android.material:material:1.12.0")
 }
