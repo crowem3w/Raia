@@ -42,10 +42,12 @@ class SketchCanvasView @JvmOverloads constructor(
         strokeWidth = 2f * density
         color = Color.parseColor("#6750A4")
     }
+    private val appFont = Fonts.dreamAvenue(context)
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#1D1B20")
         textSize = 13f * density
         textAlign = Paint.Align.CENTER
+        typeface = appFont
     }
     private val selectionPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -57,6 +59,7 @@ class SketchCanvasView @JvmOverloads constructor(
         color = Color.parseColor("#79747E")
         textSize = 14f * density
         textAlign = Paint.Align.CENTER
+        typeface = appFont
     }
 
     private var selected: SketchPart? = null

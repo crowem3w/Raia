@@ -26,6 +26,7 @@ fun showToolsSheet(
     val dialog = BottomSheetDialog(context)
     val d = context.resources.displayMetrics.density
     fun dp(v: Int) = (v * d).toInt()
+    val appFont = Fonts.dreamAvenue(context)
 
     val root = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
@@ -35,7 +36,7 @@ fun showToolsSheet(
     root.addView(TextView(context).apply {
         text = "Add to sketch"
         textSize = 18f
-        setTypeface(typeface, Typeface.BOLD)
+        setTypeface(appFont, Typeface.BOLD)
         setPadding(0, 0, 0, dp(12))
     })
 
@@ -45,6 +46,7 @@ fun showToolsSheet(
             text = kind.displayLabel
             isAllCaps = false
             textSize = 12f
+            typeface = appFont
             layoutParams = GridLayout.LayoutParams().apply {
                 width = dp(104)
                 height = GridLayout.LayoutParams.WRAP_CONTENT
@@ -62,6 +64,7 @@ fun showToolsSheet(
         text = "Generate prompt"
         isAllCaps = false
         isEnabled = hasParts
+        typeface = appFont
         layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -76,6 +79,7 @@ fun showToolsSheet(
         root.addView(MaterialButton(context).apply {
             text = "Clear canvas"
             isAllCaps = false
+            typeface = appFont
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -100,31 +104,36 @@ fun showPartOptionsDialog(
 ) {
     val d = context.resources.displayMetrics.density
     val pad = (16 * d).toInt()
+    val appFont = Fonts.dreamAvenue(context)
     val input = EditText(context).apply {
         setText(part.label)
         hint = part.kind.displayLabel
         inputType = InputType.TYPE_CLASS_TEXT
         setPadding(pad, pad, pad, pad)
+        typeface = appFont
     }
-    AlertDialog.Builder(context)
+    val dialog = AlertDialog.Builder(context)
         .setTitle(part.kind.displayLabel)
         .setView(input)
         .setPositiveButton("Save") { _, _ -> onRename(input.text.toString()) }
         .setNegativeButton("Delete") { _, _ -> onDelete() }
         .setNeutralButton("Cancel", null)
         .show()
+    applyFontToAlertDialog(dialog, appFont)
 }
 
 /** Shows the generated prompt text with a Copy button. */
 fun showPromptDialog(context: Context, prompt: String) {
     val d = context.resources.displayMetrics.density
     val pad = (20 * d).toInt()
+    val appFont = Fonts.dreamAvenue(context)
     val textView = TextView(context).apply {
         text = prompt
         setTextIsSelectable(true)
         setPadding(pad, pad, pad, pad)
+        typeface = appFont
     }
-    AlertDialog.Builder(context)
+    val dialog = AlertDialog.Builder(context)
         .setTitle("Prompt")
         .setView(ScrollView(context).apply { addView(textView) })
         .setPositiveButton("Copy") { _, _ ->
@@ -134,4 +143,16 @@ fun showPromptDialog(context: Context, prompt: String) {
         }
         .setNegativeButton("Close", null)
         .show()
+    applyFontToAlertDialog(dialog, appFont)
+}
+
+/** Applies the app font to an AlertDialog's title and action buttons after it's shown. */
+private fun applyFontToAlertDialog(dialog: AlertDialog, font: Typeface) {
+    val titleId = dialog.context.resources.getIdentifier("alertTitle", "id", "android")
+    if (titleId != 0) {
+        dialog.findViewById<TextView>(titleId)?.typeface = font
+    }
+    dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.typeface = font
+    dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.typeface = font
+    dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.typeface = font
 }
