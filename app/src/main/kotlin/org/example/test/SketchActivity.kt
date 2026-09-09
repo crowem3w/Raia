@@ -3,8 +3,7 @@ package org.example.test
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 
-/** The sketch canvas screen where the user lays out and edits parts of their app design. */
-class EditorActivity : AppCompatActivity() {
+class SketchActivity : AppCompatActivity() {
 
     private lateinit var canvas: SketchCanvasView
     private var nextId = 1L
@@ -20,7 +19,7 @@ class EditorActivity : AppCompatActivity() {
 
             override fun onPartTapped(part: SketchPart) {
                 showPartOptionsDialog(
-                    context = this@EditorActivity,
+                    context = this@SketchActivity,
                     part = part,
                     onRename = { newLabel ->
                         part.label = newLabel
