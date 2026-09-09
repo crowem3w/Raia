@@ -30,7 +30,7 @@ class SketchActivity : AppCompatActivity() {
             }
 
             override fun onPartsChanged() {
-                // Hook for future persistence (e.g. saving the sketch to disk).
+                
             }
         }
     }

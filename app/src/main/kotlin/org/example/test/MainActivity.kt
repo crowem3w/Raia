@@ -11,11 +11,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 
-/**
- * Home screen: hero copy on the left, product mockup on the right, both
- * aligned to the top of the screen. Tapping "Create app" starts a new
- * sketch in [SketchActivity].
- */
+
+
+
+
+
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,9 +28,9 @@ class MainActivity : AppCompatActivity() {
         val mutedColor = 0xFFA8A29E.toInt()
         val onColor = 0xFFF5F5F4.toInt()
 
-        // Outer root splits the screen into thirds (via weights). The first
-        // two thirds host the centered content; the last third is empty
-        // space, so the hero content sits centered within columns 1 and 2.
+        
+        
+        
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        // Columns 1 + 2 (2/3 of the screen width): centers its content.
+        
         val contentArea = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -51,7 +51,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(dp(20), dp(20), dp(12), dp(20))
         }
 
-        // Column 3 (1/3 of the screen width): left empty.
+        
         val spacer = android.view.View(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 0,
@@ -60,7 +60,7 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        // Left: copy + CTA
+        
         val leftColumn = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
@@ -108,7 +108,7 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        // Right: hero mockup image
+        
         val heroImage = ImageView(this).apply {
             setImageDrawable(ContextCompat.getDrawable(this@MainActivity, R.drawable.home_hero))
             adjustViewBounds = true

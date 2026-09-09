@@ -4,7 +4,7 @@ import android.content.Context
 import android.graphics.Typeface
 import androidx.core.content.res.ResourcesCompat
 
-/** Central place to load the app's custom typeface (Dream Avenue). */
+
 object Fonts {
 
     @Volatile

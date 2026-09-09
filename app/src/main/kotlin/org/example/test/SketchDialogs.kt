@@ -15,7 +15,7 @@ import android.widget.Toast
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 
-/** Modal shown on long-press: pick a part to drop at that spot, or generate the prompt. */
+
 fun showToolsSheet(
     context: Context,
     hasParts: Boolean,
@@ -95,7 +95,7 @@ fun showToolsSheet(
     dialog.show()
 }
 
-/** Tapping an existing part on the canvas: rename its label or delete it. */
+
 fun showPartOptionsDialog(
     context: Context,
     part: SketchPart,
@@ -122,7 +122,7 @@ fun showPartOptionsDialog(
     applyFontToAlertDialog(dialog, appFont)
 }
 
-/** Shows the generated prompt text with a Copy button. */
+
 fun showPromptDialog(context: Context, prompt: String) {
     val d = context.resources.displayMetrics.density
     val pad = (20 * d).toInt()
@@ -146,7 +146,7 @@ fun showPromptDialog(context: Context, prompt: String) {
     applyFontToAlertDialog(dialog, appFont)
 }
 
-/** Applies the app font to an AlertDialog's title and action buttons after it's shown. */
+
 private fun applyFontToAlertDialog(dialog: AlertDialog, font: Typeface) {
     val titleId = dialog.context.resources.getIdentifier("alertTitle", "id", "android")
     if (titleId != 0) {
