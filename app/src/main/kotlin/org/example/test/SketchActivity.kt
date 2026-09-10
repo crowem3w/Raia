@@ -146,13 +146,11 @@ class SketchActivity : AppCompatActivity() {
             openPartPickerFromTab(tabMedia, "Media", listOf(PartKind.IMAGE))
         }
         tabComponents.setOnClickListener {
-            openPartPickerFromTab(
-                tabComponents,
-                "Components",
-                listOf(
-                    PartKind.BUTTON, PartKind.FAB, PartKind.TEXT_FIELD, PartKind.CHECKBOX,
-                    PartKind.SWITCH, PartKind.TOP_APP_BAR, PartKind.NAV_BAR,
-                ),
+            setTabActive(tabComponents)
+            showComponentsPickerSheet(
+                context = this,
+                onPick = { kind -> addPart(kind, canvas.width / 2f, canvas.height / 2f) },
+                onDismiss = { setTabActive(tabSelect) },
             )
         }
         tabSelect.setOnClickListener { setTabActive(tabSelect) }
