@@ -6,19 +6,19 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.math.roundToInt
 
-/**
- * Turns the sketch into a real, buildable Android project by copying the
- * boilerplate from assets/boilerplate (a plain "Hello World" Android module)
- * and overwriting the handful of files that actually depend on the sketch:
- * the layout, the strings, and the build file (which needs Material added).
- *
- * Everything else — Gradle wrapper config, manifest, theme, MainActivity's
- * onCreate — comes straight from the template untouched. This is the
- * "template-fill" generator: deterministic, offline, no AI call involved.
- */
+
+
+
+
+
+
+
+
+
+
 object CodeGenerator {
 
-    /** Generates the project into [context.cacheDir]/generated_project, zips it, returns the zip file. */
+    
     fun generateProjectZip(
         context: Context,
         parts: List<SketchPart>,
@@ -31,10 +31,10 @@ object CodeGenerator {
             mkdirs()
         }
 
-        // 1. Copy every boilerplate file over as-is.
+        
         copyAssetDir(context, "boilerplate", workDir)
 
-        // 2. Overwrite the parts that depend on the sketch.
+        
         val wDp = (canvasWidthPx / density).roundToInt()
         val hDp = (canvasHeightPx / density).roundToInt()
 
@@ -50,7 +50,7 @@ object CodeGenerator {
         File(workDir, "app/src/main/res/values/themes.xml")
             .writeText(buildThemesXml())
 
-        // Comment in MainActivity noting the generated screen size, purely informational.
+        
         File(workDir, "app/src/main/kotlin/org/example/test/MainActivity.kt").let { f ->
             val original = f.readText()
             f.writeText(
@@ -61,13 +61,13 @@ object CodeGenerator {
             )
         }
 
-        // 3. Zip it up.
+        
         val zipFile = File(context.cacheDir, "generated_app.zip")
         zipDirectory(workDir, zipFile)
         return zipFile
     }
 
-    // ---- layout generation -------------------------------------------------
+    
 
     private fun buildLayoutXml(parts: List<SketchPart>, density: Float): String {
         val sb = StringBuilder()
@@ -231,7 +231,7 @@ object CodeGenerator {
         }
     }
 
-    // ---- strings.xml generation ---------------------------------------------
+    
 
     private fun buildStringsXml(parts: List<SketchPart>): String {
         val sb = StringBuilder()
@@ -250,7 +250,7 @@ object CodeGenerator {
     private fun String.xmlEscape() = replace("&", "&amp;").replace("\"", "&quot;")
         .replace("'", "\\'").replace("<", "&lt;").replace(">", "&gt;")
 
-    // ---- build.gradle.kts / themes.xml overrides ----------------------------
+    
 
     private fun buildGradleKts(): String = """
         import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -297,12 +297,12 @@ object CodeGenerator {
         </resources>
     """.trimIndent()
 
-    // ---- helpers -------------------------------------------------------------
+    
 
     private fun copyAssetDir(context: Context, assetPath: String, destDir: File) {
         val children = context.assets.list(assetPath) ?: emptyArray()
         if (children.isEmpty()) {
-            // Leaf file.
+            
             destDir.parentFile?.mkdirs()
             context.assets.open(assetPath).use { input ->
                 destDir.outputStream().use { output -> input.copyTo(output) }

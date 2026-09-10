@@ -12,18 +12,18 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import kotlin.math.roundToInt
 
-/**
- * The sketch canvas screen: a blank surface you drop Material 3 parts onto, plus a design-tool
- * style chrome (top bar, zoom controls, bottom control panel) around it.
- *
- * Only the pieces that map to the underlying sketch model are wired up (adding/selecting/moving/
- * renaming/deleting parts, generating a prompt, exporting a project). The rest of the chrome —
- * undo/redo, zoom, preview, quick actions (Frame/Group/Align/Distribute/Lock), and the animation &
- * interaction row — mirrors the target design but is intentionally left as a stub for now. The
- * Components tab opens a fully functional browser (search, category rail, scroll-to-section) —
- * see [showComponentsPanel] — but each category's slots are placeholders since no components are
- * implemented yet.
- */
+
+
+
+
+
+
+
+
+
+
+
+
 class SketchActivity : AppCompatActivity() {
 
     private lateinit var canvas: SketchCanvasView
@@ -108,7 +108,7 @@ class SketchActivity : AppCompatActivity() {
         updateProperties(null)
     }
 
-    // ---- Top bar -----------------------------------------------------------------------------
+    
 
     private fun setupTopBar() {
         findViewById<View>(R.id.btnBack).setOnClickListener { finish() }
@@ -126,7 +126,7 @@ class SketchActivity : AppCompatActivity() {
         }
     }
 
-    // ---- Zoom controls -------------------------------------------------------------------------
+    
 
     private fun setupZoomControls() {
         findViewById<View>(R.id.btnZoomIn).setOnClickListener { notAvailableYet("Zoom") }
@@ -134,7 +134,7 @@ class SketchActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnLocate).setOnClickListener { notAvailableYet("Recenter") }
     }
 
-    // ---- Main tools tab bar ----------------------------------------------------------------
+    
 
     private fun setupTabs() {
         setTabActive(tabSelect)
@@ -169,7 +169,7 @@ class SketchActivity : AppCompatActivity() {
         )
     }
 
-    /** Marks [active] as the highlighted tab and every other tab as inactive. */
+    
     private fun setTabActive(active: LinearLayout) {
         for (tab in allTabs) setTabVisualState(tab, tab === active)
     }
@@ -185,7 +185,7 @@ class SketchActivity : AppCompatActivity() {
         (pill.getChildAt(1) as TextView).setTextColor(color)
     }
 
-    // ---- Quick actions (Frame / Group / Align / Distribute / Lock) — stubs -------------------
+    
 
     private fun setupQuickActions() {
         val actions = listOf(
@@ -201,7 +201,7 @@ class SketchActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnPropertiesMore).setOnClickListener { notAvailableYet("More properties") }
     }
 
-    // ---- Animation & interaction row — stubs -------------------------------------------------
+    
 
     private fun setupAnimationRow() {
         val actions = listOf(
@@ -220,13 +220,13 @@ class SketchActivity : AppCompatActivity() {
         Toast.makeText(this, "$feature isn't available yet", Toast.LENGTH_SHORT).show()
     }
 
-    // ---- Empty state -------------------------------------------------------------------------
+    
 
     private fun updateEmptyState() {
         emptyState.visibility = if (canvas.parts.isEmpty()) View.VISIBLE else View.GONE
     }
 
-    // ---- Properties panel ----------------------------------------------------------------------
+    
 
     private fun updateProperties(part: SketchPart?) {
         if (part == null) {
@@ -245,7 +245,7 @@ class SketchActivity : AppCompatActivity() {
         tvRotation.text = "0\u00B0"
     }
 
-    // ---- Part picker / placement --------------------------------------------------------------
+    
 
     private fun openPartPicker(
         title: String,
@@ -277,7 +277,7 @@ class SketchActivity : AppCompatActivity() {
         canvas.addPart(SketchPart(nextId++, kind, px, py, w, h))
     }
 
-    // ---- Prompt / export -----------------------------------------------------------------------
+    
 
     private fun generatePrompt() {
         val density = resources.displayMetrics.density
@@ -285,7 +285,7 @@ class SketchActivity : AppCompatActivity() {
         showPromptDialog(this, prompt)
     }
 
-    /** Fills the boilerplate template with a real layout generated from the sketch, then shares the zip. */
+    
     private fun exportProject() {
         val density = resources.displayMetrics.density
         val zip = CodeGenerator.generateProjectZip(

@@ -15,12 +15,12 @@ import android.widget.Toast
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 
-/**
- * Modal used by the bottom panel's Shapes/Text/Media tabs (and the empty-state prompt /
- * long-press-empty-space gesture): pick a part to drop onto the canvas. [title] and [kinds] let
- * callers scope the grid to what that tab represents. The Components tab uses its own browser —
- * see [showComponentsPanel] in ComponentsPanel.kt — since it isn't backed by placeable parts yet.
- */
+
+
+
+
+
+
 fun showPartPickerSheet(
     context: Context,
     title: String,
@@ -68,7 +68,7 @@ fun showPartPickerSheet(
     dialog.show()
 }
 
-/** Modal opened from the top bar's "..." button: sketch-level actions that aren't tied to a part. */
+
 fun showMoreMenu(
     context: Context,
     hasParts: Boolean,
@@ -139,7 +139,7 @@ fun showMoreMenu(
     dialog.show()
 }
 
-/** Tapping an existing part on the canvas: rename its label or delete it. */
+
 fun showPartOptionsDialog(
     context: Context,
     part: SketchPart,
@@ -163,7 +163,7 @@ fun showPartOptionsDialog(
         .show()
 }
 
-/** Shows the generated prompt text with a Copy button. */
+
 fun showPromptDialog(context: Context, prompt: String) {
     val d = context.resources.displayMetrics.density
     val pad = (20 * d).toInt()

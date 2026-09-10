@@ -11,11 +11,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 
-/**
- * Home screen: hero copy on the left, product mockup on the right, both
- * aligned to the top of the screen. Tapping "Create app" starts a new
- * sketch in [SketchActivity].
- */
+
+
+
+
+
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(dp(20), dp(20), dp(12), dp(20))
         }
 
-        // Left: copy + CTA
+        
         val leftColumn = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.TOP
@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        // Right: hero mockup image
+        
         val heroImage = ImageView(this).apply {
             setImageDrawable(ContextCompat.getDrawable(this@MainActivity, R.drawable.home_hero))
             adjustViewBounds = true

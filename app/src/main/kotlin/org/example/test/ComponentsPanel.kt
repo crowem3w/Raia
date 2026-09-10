@@ -20,7 +20,7 @@ import android.widget.Toast
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
-/** One left-rail category in the Components browser. */
+
 private data class ComponentCategory(val id: String, val label: String, val iconRes: Int)
 
 private val COMPONENT_CATEGORIES = listOf(
@@ -38,15 +38,15 @@ private val COMPONENT_CATEGORIES = listOf(
     ComponentCategory("prototype", "Prototype", R.drawable.ic_cat_prototype),
 )
 
-/**
- * Full-height Components browser opened from the bottom panel's Components tab: a search/filter
- * row, a left rail of category icons, and a scrollable list of category sections on the right.
- * Tapping a rail icon highlights it and scrolls the content to that section; typing in search
- * filters sections (and dims non-matching rail icons) by category name.
- *
- * No parts can be dropped from here yet — every category renders as a labelled section with a
- * row of empty placeholder slots — but the browsing UI itself is fully functional.
- */
+
+
+
+
+
+
+
+
+
 fun showComponentsPanel(context: Context, onDismiss: () -> Unit = {}) {
     val dialog = BottomSheetDialog(context)
     val d = context.resources.displayMetrics.density
@@ -64,7 +64,7 @@ fun showComponentsPanel(context: Context, onDismiss: () -> Unit = {}) {
         layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
     }
 
-    // Drag handle
+    
     root.addView(View(context).apply {
         layoutParams = LinearLayout.LayoutParams(dp(36), dp(4)).apply {
             gravity = Gravity.CENTER_HORIZONTAL
@@ -74,7 +74,7 @@ fun showComponentsPanel(context: Context, onDismiss: () -> Unit = {}) {
         setBackgroundResource(R.drawable.bg_drag_handle)
     })
 
-    // Header: title + close
+    
     root.addView(LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
@@ -101,7 +101,7 @@ fun showComponentsPanel(context: Context, onDismiss: () -> Unit = {}) {
         })
     })
 
-    // Search + filter row
+    
     val searchInput = EditText(context).apply {
         hint = "Search components"
         setHintTextColor(Color.parseColor("#6F707A"))
@@ -144,7 +144,7 @@ fun showComponentsPanel(context: Context, onDismiss: () -> Unit = {}) {
         addView(filterButton)
     })
 
-    // Rail (left) + sections (right, scrollable)
+    
     val railIcons = mutableMapOf<String, FrameLayout>()
     val sectionViews = mutableMapOf<String, View>()
 

@@ -12,15 +12,15 @@ import android.view.MotionEvent
 import android.view.View
 import kotlin.math.max
 
-/**
- * A blank white canvas you sketch Material 3 parts onto.
- *
- * - Long-press empty space -> [Listener.onLongPressEmptySpace] (the host opens the tools sheet).
- * - Tap an existing part -> selects it; [Listener.onSelectionChanged] drives the properties panel.
- * - Long-press an existing part -> [Listener.onPartLongPressed] (the host opens rename/delete options).
- * - Drag an existing part -> moves it, live-updating [Listener.onSelectionChanged];
- *   [Listener.onPartsChanged] fires once the drag ends.
- */
+
+
+
+
+
+
+
+
+
 class SketchCanvasView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -36,7 +36,7 @@ class SketchCanvasView @JvmOverloads constructor(
     var listener: Listener? = null
     val parts = mutableListOf<SketchPart>()
 
-    /** Currently selected part, if any. Read by the host to drive the properties panel. */
+    
     val selectedPart: SketchPart? get() = selected
 
     private val density = context.resources.displayMetrics.density

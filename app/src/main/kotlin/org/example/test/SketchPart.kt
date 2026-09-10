@@ -1,6 +1,6 @@
 package org.example.test
 
-/** A part placed on the sketch canvas. Coordinates and size are in real device pixels. */
+
 data class SketchPart(
     val id: Long,
     val kind: PartKind,
