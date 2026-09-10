@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -40,7 +41,7 @@
                     android:layout_height="22dp"
                     android:layout_gravity="center"
                     android:src="@drawable/ic_plus"
-                    android:tint="#79747E" />
+                    app:tint="#79747E" />
             </FrameLayout>
 
             <TextView
@@ -226,7 +227,7 @@
                 style="@style/SketchTabColumn">
 
                 <LinearLayout style="@style/SketchTabPill">
-                    <ImageView style="@style/SketchTabIcon" android:src="@drawable/ic_shapes" android:tint="#9A9AA5" />
+                    <ImageView style="@style/SketchTabIcon" android:src="@drawable/ic_shapes" app:tint="#9A9AA5" />
                     <TextView style="@style/SketchTabLabel" android:text="Shapes" android:textColor="#9A9AA5" />
                 </LinearLayout>
             </LinearLayout>
@@ -253,7 +254,7 @@
                 style="@style/SketchTabColumn">
 
                 <LinearLayout style="@style/SketchTabPill">
-                    <ImageView style="@style/SketchTabIcon" android:src="@drawable/ic_media" android:tint="#9A9AA5" />
+                    <ImageView style="@style/SketchTabIcon" android:src="@drawable/ic_media" app:tint="#9A9AA5" />
                     <TextView style="@style/SketchTabLabel" android:text="Media" android:textColor="#9A9AA5" />
                 </LinearLayout>
             </LinearLayout>
@@ -263,7 +264,7 @@
                 style="@style/SketchTabColumn">
 
                 <LinearLayout style="@style/SketchTabPill">
-                    <ImageView style="@style/SketchTabIcon" android:src="@drawable/ic_components" android:tint="#9A9AA5" />
+                    <ImageView style="@style/SketchTabIcon" android:src="@drawable/ic_components" app:tint="#9A9AA5" />
                     <TextView style="@style/SketchTabLabel" android:text="Components" android:textColor="#9A9AA5" />
                 </LinearLayout>
             </LinearLayout>
