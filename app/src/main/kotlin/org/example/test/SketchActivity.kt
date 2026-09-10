@@ -19,7 +19,10 @@ import kotlin.math.roundToInt
  * Only the pieces that map to the underlying sketch model are wired up (adding/selecting/moving/
  * renaming/deleting parts, generating a prompt, exporting a project). The rest of the chrome —
  * undo/redo, zoom, preview, quick actions (Frame/Group/Align/Distribute/Lock), and the animation &
- * interaction row — mirrors the target design but is intentionally left as a stub for now.
+ * interaction row — mirrors the target design but is intentionally left as a stub for now. The
+ * Components tab opens a fully functional browser (search, category rail, scroll-to-section) —
+ * see [showComponentsPanel] — but each category's slots are placeholders since no components are
+ * implemented yet.
  */
 class SketchActivity : AppCompatActivity() {
 
@@ -147,9 +150,8 @@ class SketchActivity : AppCompatActivity() {
         }
         tabComponents.setOnClickListener {
             setTabActive(tabComponents)
-            showComponentsPickerSheet(
+            showComponentsPanel(
                 context = this,
-                onPick = { kind -> addPart(kind, canvas.width / 2f, canvas.height / 2f) },
                 onDismiss = { setTabActive(tabSelect) },
             )
         }
