@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Used as View.setTag(id, ...) keys on the nav-bar icon bubbles to remember the active-tab
-         frame's current fill/rim color between animations (see SketchActivity#setTabVisualState),
-         since GradientDrawable itself doesn't expose a getter for its own last-set color. -->
-    <item name="tag_nav_frame_fill" type="id" />
-    <item name="tag_nav_frame_rim" type="id" />
-</resources>

@@ -1,17 +1,11 @@
 package org.example.test
 
-import android.animation.ValueAnimator
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.PorterDuff
-import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.MotionEvent
 import android.view.View
-import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -60,23 +54,9 @@ class SketchActivity : AppCompatActivity() {
     private lateinit var actionHideToggleSel: LinearLayout
     private lateinit var actionDeleteSel: LinearLayout
 
-    // Fixed, always-visible bottom navigation bar - a LinearLayout styled at runtime as a single
-    // continuous bent/folded sheet (see styleNavDock/NavWaveDrawable), not a BottomSheetBehavior
-    // sheet. Never drags, collapses, or hides.
+    // Fixed, always-visible bottom navigation bar - a plain LinearLayout docked to the bottom
+    // edge, not a BottomSheetBehavior sheet. Never drags, collapses, or hides.
     private lateinit var bottomNavBar: LinearLayout
-
-    // The sheet's own background: one continuous shape whose raised "fold" slides beneath
-    // whichever tab is active (see updateNavWavePeak). Built once in styleNavDock().
-    private lateinit var navWaveDrawable: NavWaveDrawable
-    private var currentActiveTab: LinearLayout? = null
-    private var navWaveInitialized = false
-    private var wavePeakAnimator: ValueAnimator? = null
-
-    // The active tab's own rounded-square "frame" (see NAV_FRAME_* constants) - a small rigid
-    // card-like box built once per tab in styleNavDock() and painted/elevated at runtime in
-    // setTabVisualState() so it visually rides on top of the bent sheet's fold rather than being
-    // part of the fold's own paint.
-    private val tabFrameDrawables = mutableMapOf<LinearLayout, GradientDrawable>()
 
     // Separate sheet that opens above bottomNavBar to show the Components ("Elements") browser.
     // Independent BottomSheetBehavior from anything the nav bar does.
@@ -86,11 +66,10 @@ class SketchActivity : AppCompatActivity() {
     private var componentsContentBuilt = false
     private var showingComponents = false
 
-    // bottomNavBar's own XML layout_marginBottom (the resting "float" gap above the screen
-    // edge), captured once, plus whatever the bottom system-gesture inset turns out to be, so
-    // the floating dock always clears the system's own gesture/navigation bar rather than
-    // sitting partly behind it.
-    private var bottomNavBarBaseBottomMargin = 0
+    // bottomNavBar's own XML paddingBottom (18dp), captured once, plus whatever the bottom
+    // system-gesture inset turns out to be, so the nav bar's tap targets aren't obscured by the
+    // system's own gesture/navigation bar.
+    private var bottomNavBarBasePaddingBottom = 0
 
     // elementsPanel has no top padding of its own. Since the sheet only ever toggles between
     // hidden and fully expanded (skipCollapsed), when expanded it reaches the physical top of
@@ -115,47 +94,6 @@ class SketchActivity : AppCompatActivity() {
     companion object {
         private const val TOP_BAR_AUTO_HIDE_DELAY_MS = 5_000L
         private const val TOP_BAR_FADE_MS = 150L
-
-        // --- Floating bent-sheet bottom dock ---------------------------------------------------
-        // Warm, minimal, almost-monochromatic palette - no saturated "selected" color, just a
-        // brighter surface catching the light near the raised fold and a stronger contrast for
-        // the active icon/label.
-        private val NAV_WAVE_FILL_TOP = Color.argb(236, 250, 248, 243) // brightest point of the fold
-        private val NAV_WAVE_FILL_BOTTOM = Color.argb(214, 239, 236, 229) // settles slightly deeper
-        private val NAV_WAVE_RIM = Color.argb(255, 255, 255, 255) // upper rim-light along the curve
-        private val NAV_WAVE_CREASE = Color.argb(255, 40, 34, 28) // soft inner shadow at the fold's base
-        private const val NAV_ICON_ACTIVE = 0xFF2B2A2E.toInt()
-        private const val NAV_ICON_INACTIVE = 0xFF9C99A0.toInt()
-        private const val NAV_LABEL_ACTIVE = 0xFF2B2A2E.toInt()
-        private const val NAV_LABEL_INACTIVE = 0xFFA6A3AC.toInt()
-        // Ambient/contact shadow tint for the sheet itself - warm and low opacity throughout so
-        // it never reads as a dark, muddy drop shadow.
-        private val NAV_SHADOW_COLOR = Color.argb(60, 40, 34, 28)
-        // How far the active icon settles upward into the sheet's raised fold - a nudge, not a
-        // separate floating bubble.
-        private const val NAV_BUMP_LIFT_DP = 10f
-
-        // --- Active-tab frame (the rounded-square "card" riding on top of the fold) ------------
-        // The bent sheet reads as a flexible surface tilting up toward the viewer; sitting on top
-        // of that, at the very peak of the fold, the active tab gets its own small rigid
-        // rounded-square frame - a distinct, brighter, harder-edged box (its own fill/rim/shadow,
-        // not just a color change) so it reads as a separate solid piece resting on the fold
-        // rather than a paint job on the sheet itself. See styleNavDock (frame built + shadow
-        // wired up) and setTabVisualState (fill/rim/elevation/scale animated per tab).
-        private const val NAV_FRAME_CORNER_DP = 16f
-        private const val NAV_FRAME_STROKE_WIDTH_DP = 1f
-        private const val NAV_FRAME_ELEVATION_ACTIVE_DP = 11f
-        private const val NAV_FRAME_ELEVATION_INACTIVE_DP = 0f
-        // Brighter/whiter than the sheet's own fold-top color so the frame still pops as a
-        // separate piece even sitting right at the fold's brightest point.
-        private val NAV_FRAME_FILL_ACTIVE = Color.argb(255, 255, 255, 253)
-        private val NAV_FRAME_FILL_INACTIVE = Color.argb(0, 255, 255, 253)
-        private val NAV_FRAME_RIM_ACTIVE = Color.argb(215, 255, 255, 255)
-        private val NAV_FRAME_RIM_INACTIVE = Color.argb(0, 255, 255, 255)
-        // A tighter, slightly stronger contact shadow than the sheet's own ambient shadow - this
-        // is a smaller shape sitting closer to what's beneath it, so its shadow should read as
-        // more defined, reinforcing that it's physically resting on the fold rather than part of it.
-        private val NAV_FRAME_SHADOW_COLOR = Color.argb(95, 40, 34, 28)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -193,9 +131,7 @@ class SketchActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this, panelBackPressedCallback)
 
         canvas.listener = object : SketchCanvasView.Listener {
-            override fun onFlickEmptySpace() = openElementsPanel()
-
-            override fun onDoubleTapEmptySpace() = openElementsPanel()
+            override fun onLongPressEmptySpace() = openElementsPanel()
 
             override fun onTapEmptySpace() = closeElementsPanel()
 
@@ -303,154 +239,39 @@ class SketchActivity : AppCompatActivity() {
 
 
 
-    // Fixed bottom navigation bar (Select/Pages/Text/Upload/Elements), styled as a single
-    // continuous bent sheet - see styleNavDock() for the folded surface itself and
-    // updateNavWavePeak() for how its raised fold tracks the active tab. Always visible - not a
+    // Fixed bottom navigation bar (Select/Pages/Text/Upload/Elements). Always visible - not a
     // BottomSheetBehavior sheet, so there's no drag/collapse/hide state to manage here, just
-    // window-inset-aware floating margins and keeping elementsPanel docked above it.
+    // window-inset padding and keeping elementsPanel docked above it.
     private fun setupBottomNavBar() {
-        styleNavDock()
-
-        bottomNavBarBaseBottomMargin = (bottomNavBar.layoutParams as CoordinatorLayout.LayoutParams).bottomMargin
+        bottomNavBarBasePaddingBottom = bottomNavBar.paddingBottom
         ViewCompat.setOnApplyWindowInsetsListener(bottomNavBar) { _, insets ->
             val navInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-            val lp = bottomNavBar.layoutParams as CoordinatorLayout.LayoutParams
-            lp.bottomMargin = bottomNavBarBaseBottomMargin + navInset
-            bottomNavBar.layoutParams = lp
+            bottomNavBar.setPadding(
+                bottomNavBar.paddingLeft,
+                bottomNavBar.paddingTop,
+                bottomNavBar.paddingRight,
+                bottomNavBarBasePaddingBottom + navInset,
+            )
             insets
         }
 
         // elementsPanel is a sibling sheet, not a child of bottomNavBar, so it doesn't
-        // automatically stop above it - keep its bottom margin matched to the dock's full
-        // footprint (its own measured height *plus* the floating gap beneath it) so the sheet's
-        // content never slides underneath the dock, or leaves a stray gap above it.
+        // automatically stop above it - keep its bottom margin matched to the nav bar's
+        // measured height so the sheet's content never slides underneath the bar.
         bottomNavBar.viewTreeObserver.addOnGlobalLayoutListener {
-            val dockLp = bottomNavBar.layoutParams as CoordinatorLayout.LayoutParams
-            val dockFootprint = bottomNavBar.height + dockLp.bottomMargin
-            val panelLp = elementsPanel.layoutParams as? CoordinatorLayout.LayoutParams
-            if (dockFootprint > 0 && panelLp != null && panelLp.bottomMargin != dockFootprint) {
-                panelLp.bottomMargin = dockFootprint
-                elementsPanel.layoutParams = panelLp
+            val navBarHeight = bottomNavBar.height
+            val lp = elementsPanel.layoutParams as? CoordinatorLayout.LayoutParams
+            if (navBarHeight > 0 && lp != null && lp.bottomMargin != navBarHeight) {
+                lp.bottomMargin = navBarHeight
+                elementsPanel.layoutParams = lp
             }
-
-            // The wave's peak position depends on the active tab's measured width/position,
-            // which isn't known until the first layout pass - snap it into place (no animation)
-            // as soon as that's available, rather than waiting for the next tab switch.
-            if (!navWaveInitialized) {
-                currentActiveTab?.let { updateNavWavePeak(it, animate = false) }
-            }
-        }
-    }
-
-    private fun dp(v: Int): Float = v * resources.displayMetrics.density
-    private fun dp(v: Float): Float = v * resources.displayMetrics.density
-
-    // Builds the floating dock surface itself: not a flat rectangle, but one continuous molded
-    // sheet (NavWaveDrawable) whose top edge is bent upward into a smooth raised fold that slides
-    // to sit behind whichever tab is active - see updateNavWavePeak(). Also gives the sheet its
-    // own soft, wide, warm-tinted ambient shadow (shaped to the fold itself, not a plain
-    // rectangle - see NavWaveDrawable#getOutline) so it reads as suspended above the canvas, and
-    // arms every tab's icon bubble with the tactile press micro-interaction, independent of which
-    // tab is active.
-    private fun styleNavDock() {
-        bottomNavBar.clipChildren = false
-        bottomNavBar.clipToPadding = false
-        navWaveDrawable = NavWaveDrawable(
-            density = resources.displayMetrics.density,
-            fillTopColor = NAV_WAVE_FILL_TOP,
-            fillBottomColor = NAV_WAVE_FILL_BOTTOM,
-            rimColor = NAV_WAVE_RIM,
-            creaseShadowColor = NAV_WAVE_CREASE,
-        )
-        bottomNavBar.background = navWaveDrawable
-        bottomNavBar.elevation = dp(18)
-        bottomNavBar.outlineAmbientShadowColor = NAV_SHADOW_COLOR
-        bottomNavBar.outlineSpotShadowColor = NAV_SHADOW_COLOR
-
-        for (tab in allTabs) {
-            tab.clipChildren = false
-            val pill = tab.getChildAt(0) as LinearLayout
-            pill.clipChildren = false
-            val bubble = pill.getChildAt(0) as FrameLayout
-            bubble.clipChildren = false
-            armPressFeedback(bubble)
-
-            // The rounded-square frame itself: a plain GradientDrawable (same recipe as
-            // BottomNavBar's tab frames) so its shape doubles as the bubble's shadow-casting
-            // outline for free - starts fully transparent/flat (inactive) and is faded/elevated
-            // in per-tab by setTabVisualState.
-            val frameDrawable = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dp(NAV_FRAME_CORNER_DP)
-                setColor(NAV_FRAME_FILL_INACTIVE)
-                setStroke(dp(NAV_FRAME_STROKE_WIDTH_DP).roundToInt(), NAV_FRAME_RIM_INACTIVE)
-            }
-            bubble.background = frameDrawable
-            bubble.outlineAmbientShadowColor = NAV_FRAME_SHADOW_COLOR
-            bubble.outlineSpotShadowColor = NAV_FRAME_SHADOW_COLOR
-            bubble.elevation = dp(NAV_FRAME_ELEVATION_INACTIVE_DP)
-            tabFrameDrawables[tab] = frameDrawable
-        }
-    }
-
-    // Slides the sheet's raised fold to sit behind `tab`. On the very first call (before the
-    // tabs have been measured) tab.width is still 0 - bail out and let the pending global layout
-    // listener in setupBottomNavBar() snap it into place once real coordinates exist.
-    private fun updateNavWavePeak(tab: LinearLayout, animate: Boolean = true) {
-        currentActiveTab = tab
-        if (tab.width == 0) return
-        val targetX = tab.left + tab.width / 2f
-
-        wavePeakAnimator?.cancel()
-        if (!animate) {
-            navWaveDrawable.peakX = targetX
-            navWaveInitialized = true
-            return
-        }
-        wavePeakAnimator = ValueAnimator.ofFloat(navWaveDrawable.peakX.takeIf { it >= 0f } ?: targetX, targetX).apply {
-            duration = 380
-            interpolator = OvershootInterpolator(1.1f)
-            addUpdateListener { navWaveDrawable.peakX = it.animatedValue as Float }
-            start()
-        }
-        navWaveInitialized = true
-    }
-
-    // Tiny tactile press feedback (design.txt: ~0.96-0.98 scale reduction, 1-2dp downward nudge,
-    // rapid spring-back) layered independently of the tap-to-select animation, so pressing a
-    // bubble - even one that's already active - still feels responsive. Never consumes the
-    // touch: the existing click listeners on the tab/pill (wired up in setupTabs) still do the
-    // actual tab switching.
-    private fun armPressFeedback(bubble: FrameLayout) {
-        bubble.setOnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    bubble.animate().cancel()
-                    bubble.animate()
-                        .scaleX(bubble.scaleX * 0.97f)
-                        .scaleY(bubble.scaleY * 0.97f)
-                        .translationYBy(dp(1.5f))
-                        .setDuration(90)
-                        .start()
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    bubble.animate().cancel()
-                    bubble.animate()
-                        .scaleX(bubble.scaleX / 0.97f)
-                        .scaleY(bubble.scaleY / 0.97f)
-                        .translationYBy(-dp(1.5f))
-                        .setDuration(180)
-                        .setInterpolator(OvershootInterpolator(2f))
-                        .start()
-                }
-            }
-            false
         }
     }
 
     // Separate sheet (independent from bottomNavBar) that shows the Components browser. Opened
-    // by tapping the Elements tab or by a flick/double-tap on empty canvas; closed by the back
-    // button/gesture, a swipe-down, or tapping empty canvas. Skips the collapsed state entirely -
+    // by tapping the Elements tab or by a long-press on empty canvas; closed by the back
+    // button/gesture, a swipe-down, dragging its handle, or tapping empty canvas. Skips the
+    // collapsed state entirely -
     // it's either hidden or fully expanded, never a partial peek.
     private fun setupElementsPanel() {
         elementsPanelBehavior.isDraggable = true
@@ -507,16 +328,16 @@ class SketchActivity : AppCompatActivity() {
         elementsPanel.setPadding(elementsPanel.paddingLeft, extra, elementsPanel.paddingRight, elementsPanel.paddingBottom)
     }
 
-    // Opens elementsPanel. Entry points are a flick (quick, short swipe) or a double-tap, both on
-    // empty canvas space (see SketchCanvasView.Listener#onFlickEmptySpace /
-    // #onDoubleTapEmptySpace above), as well as tapping the Elements tab directly.
+    // Opens elementsPanel. Entry points are a long-press on empty canvas space (see
+    // SketchCanvasView.Listener#onLongPressEmptySpace above) and tapping the Elements tab
+    // directly.
     private fun openElementsPanel() {
         setTabActive(tabComponents)
         showComponentsContent()
     }
 
-    // Closes elementsPanel. Used by the back button/gesture, a tap on empty canvas, and available
-    // to swipe-down-to-dismiss.
+    // Closes elementsPanel. Used by the back button/gesture, a tap on empty canvas, a swipe-down,
+    // or dragging the sheet down by its handle (both native to the draggable BottomSheetBehavior).
     private fun closeElementsPanel() {
         if (elementsPanelBehavior.state != BottomSheetBehavior.STATE_HIDDEN) {
             elementsPanelBehavior.state = BottomSheetBehavior.STATE_HIDDEN
@@ -611,92 +432,17 @@ class SketchActivity : AppCompatActivity() {
 
     private fun setTabActive(active: LinearLayout) {
         for (tab in allTabs) setTabVisualState(tab, tab === active)
-        updateNavWavePeak(active)
     }
 
-    // Animates a tab between its flat, resting look and its active look: the active icon settles
-    // upward by a small nudge so it nests naturally inside the sheet's raised fold (rather than
-    // popping up as a separate floating bubble - see NavWaveDrawable/updateNavWavePeak, which is
-    // what actually does the "rising" now), spring-settling into place (slight overshoot rather
-    // than a sharp snap), while every other icon just eases back down flat and dim. Both
-    // directions share the same easing so a tab switch reads as one continuous motion rather than
-    // two unrelated snaps.
     private fun setTabVisualState(tab: LinearLayout, active: Boolean) {
         val pill = tab.getChildAt(0) as LinearLayout
-        val bubble = pill.getChildAt(0) as FrameLayout
-        val icon = bubble.getChildAt(0) as ImageView
-        val label = pill.getChildAt(1) as TextView
-
-        label.setTypeface(label.typeface, if (active) Typeface.BOLD else Typeface.NORMAL)
-        label.setTextColor(if (active) NAV_LABEL_ACTIVE else NAV_LABEL_INACTIVE)
-
-        val fromIconColor = (icon.tag as? Int) ?: (if (active) NAV_ICON_INACTIVE else NAV_ICON_ACTIVE)
-        val toIconColor = if (active) NAV_ICON_ACTIVE else NAV_ICON_INACTIVE
-        icon.tag = toIconColor
-        ValueAnimator.ofArgb(fromIconColor, toIconColor).apply {
-            duration = 260
-            addUpdateListener { icon.setColorFilter(it.animatedValue as Int, PorterDuff.Mode.SRC_IN) }
-            start()
+        pill.setBackgroundResource(if (active) R.drawable.bg_tab_selected else 0)
+        val color = if (active) Color.WHITE else Color.parseColor("#9A9AA5")
+        when (val icon = pill.getChildAt(0)) {
+            is ImageView -> icon.setColorFilter(color)
+            is TextView -> icon.setTextColor(color)
         }
-
-        bubble.animate().cancel()
-        val targetY = if (active) -dp(NAV_BUMP_LIFT_DP) else 0f
-        bubble.animate()
-            .translationY(targetY)
-            .scaleX(if (active) 1f else 0.94f)
-            .scaleY(if (active) 1f else 0.94f)
-            .setDuration(if (active) 380 else 320)
-            .setInterpolator(OvershootInterpolator(if (active) 1.15f else 1f))
-            .start()
-
-        // The frame itself: fades its fill/rim in and lifts its elevation up off the fold at the
-        // same time the bubble rises, so the rounded-square box reads as one rigid piece riding
-        // up on top of the bent sheet - not a color swap sitting flush with it.
-        val frameDrawable = tabFrameDrawables[tab]
-        if (frameDrawable != null) {
-            val fromFill = (bubble.getTag(R.id.tag_nav_frame_fill) as? Int)
-                ?: (if (active) NAV_FRAME_FILL_INACTIVE else NAV_FRAME_FILL_ACTIVE)
-            val toFill = if (active) NAV_FRAME_FILL_ACTIVE else NAV_FRAME_FILL_INACTIVE
-            val fromRim = (bubble.getTag(R.id.tag_nav_frame_rim) as? Int)
-                ?: (if (active) NAV_FRAME_RIM_INACTIVE else NAV_FRAME_RIM_ACTIVE)
-            val toRim = if (active) NAV_FRAME_RIM_ACTIVE else NAV_FRAME_RIM_INACTIVE
-            bubble.setTag(R.id.tag_nav_frame_fill, toFill)
-            bubble.setTag(R.id.tag_nav_frame_rim, toRim)
-
-            val strokeWidthPx = dp(NAV_FRAME_STROKE_WIDTH_DP).roundToInt()
-            ValueAnimator.ofFloat(0f, 1f).apply {
-                duration = if (active) 380 else 320
-                interpolator = OvershootInterpolator(if (active) 1.15f else 1f)
-                addUpdateListener { anim ->
-                    val t = anim.animatedValue as Float
-                    frameDrawable.setColor(blendArgb(fromFill, toFill, t))
-                    frameDrawable.setStroke(strokeWidthPx, blendArgb(fromRim, toRim, t))
-                }
-                start()
-            }
-
-            val fromElevation = bubble.elevation
-            val toElevation = dp(if (active) NAV_FRAME_ELEVATION_ACTIVE_DP else NAV_FRAME_ELEVATION_INACTIVE_DP)
-            ValueAnimator.ofFloat(fromElevation, toElevation).apply {
-                duration = if (active) 380 else 320
-                interpolator = OvershootInterpolator(if (active) 1.15f else 1f)
-                addUpdateListener { bubble.elevation = it.animatedValue as Float }
-                start()
-            }
-        }
-    }
-
-    // Simple per-channel ARGB blend (avoids pulling in androidx.core just for this one animation).
-    // Channels are clamped since the overshoot interpolator driving this can push t slightly
-    // outside [0, 1] at the tail of the animation.
-    private fun blendArgb(from: Int, to: Int, t: Float): Int {
-        fun mix(a: Int, b: Int): Int = (a + (b - a) * t).roundToInt().coerceIn(0, 255)
-        return Color.argb(
-            mix(Color.alpha(from), Color.alpha(to)),
-            mix(Color.red(from), Color.red(to)),
-            mix(Color.green(from), Color.green(to)),
-            mix(Color.blue(from), Color.blue(to)),
-        )
+        (pill.getChildAt(1) as TextView).setTextColor(color)
     }
 
 

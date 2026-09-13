@@ -1,14 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Main tools tab bar: the floating glassmorphic dock from design.txt. Each tab is
-         [column > pill > (iconBubble > icon), label]. The bubble box is a FIXED size in BOTH
-         the resting and active states - only its background/elevation/scale/translationY change
-         at runtime (see SketchActivity#setTabVisualState) - so switching tabs never changes the
-         dock's own measured height, only the bubble rising out of and settling back into it. -->
+    <!-- Main tools tab bar -->
     <style name="SketchTabColumn">
         <item name="android:layout_width">0dp</item>
-        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_weight">1</item>
         <item name="android:gravity">center</item>
     </style>
@@ -17,27 +13,20 @@
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:orientation">vertical</item>
-        <item name="android:gravity">center_horizontal</item>
-    </style>
-
-    <!-- Fixed hit-box the active bubble rises within; only the active tab paints anything into
-         it (see styleNavDock/setTabVisualState) - inactive tabs leave it fully transparent so it
-         reads as bare icon+label, not an invisible box. -->
-    <style name="SketchTabIconBubble">
-        <item name="android:layout_width">52dp</item>
-        <item name="android:layout_height">52dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingHorizontal">14dp</item>
+        <item name="android:paddingVertical">8dp</item>
     </style>
 
     <style name="SketchTabIcon">
-        <item name="android:layout_width">22dp</item>
-        <item name="android:layout_height">22dp</item>
-        <item name="android:layout_gravity">center</item>
+        <item name="android:layout_width">20dp</item>
+        <item name="android:layout_height">20dp</item>
     </style>
 
     <style name="SketchTabLabel">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_marginTop">5dp</item>
+        <item name="android:layout_marginTop">4dp</item>
         <item name="android:textSize">10.5sp</item>
     </style>
 
