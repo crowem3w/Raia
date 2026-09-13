@@ -54,8 +54,10 @@ class SketchActivity : AppCompatActivity() {
     private lateinit var actionHideToggleSel: LinearLayout
     private lateinit var actionDeleteSel: LinearLayout
 
-    // Fixed, always-visible bottom navigation bar - a plain LinearLayout docked to the bottom
-    // edge, not a BottomSheetBehavior sheet. Never drags, collapses, or hides.
+    // Bottom navigation bar - a plain LinearLayout docked to the bottom edge, not a
+    // BottomSheetBehavior sheet. Visible by default when SketchActivity opens; toggled
+    // hidden/visible by tapping empty canvas (see onTapEmptySpace below). Never drags or
+    // collapses - it's either fully shown or fully hidden.
     private lateinit var bottomNavBar: LinearLayout
 
     // Separate sheet that opens above bottomNavBar to show the Components ("Elements") browser.
@@ -94,6 +96,7 @@ class SketchActivity : AppCompatActivity() {
     companion object {
         private const val TOP_BAR_AUTO_HIDE_DELAY_MS = 5_000L
         private const val TOP_BAR_FADE_MS = 150L
+        private const val BOTTOM_NAV_BAR_FADE_MS = 150L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -133,7 +136,12 @@ class SketchActivity : AppCompatActivity() {
         canvas.listener = object : SketchCanvasView.Listener {
             override fun onLongPressEmptySpace() = openElementsPanel()
 
-            override fun onTapEmptySpace() = closeElementsPanel()
+            override fun onDoubleTapEmptySpace() = openElementsPanel()
+
+            override fun onTapEmptySpace() {
+                closeElementsPanel()
+                toggleBottomNavBar()
+            }
 
             override fun onPartLongPressed(part: SketchPart) {
                 showPartOptionsDialog(
@@ -239,9 +247,9 @@ class SketchActivity : AppCompatActivity() {
 
 
 
-    // Fixed bottom navigation bar (Select/Pages/Text/Upload/Elements). Always visible - not a
-    // BottomSheetBehavior sheet, so there's no drag/collapse/hide state to manage here, just
-    // window-inset padding and keeping elementsPanel docked above it.
+    // Fixed bottom navigation bar (Select/Pages/Text/Upload/Elements). Visible on launch; not a
+    // BottomSheetBehavior sheet, so there's no drag/collapse state to manage, just window-inset
+    // padding, keeping elementsPanel docked above it, and the show/hide toggle below.
     private fun setupBottomNavBar() {
         bottomNavBarBasePaddingBottom = bottomNavBar.paddingBottom
         ViewCompat.setOnApplyWindowInsetsListener(bottomNavBar) { _, insets ->
@@ -257,21 +265,49 @@ class SketchActivity : AppCompatActivity() {
 
         // elementsPanel is a sibling sheet, not a child of bottomNavBar, so it doesn't
         // automatically stop above it - keep its bottom margin matched to the nav bar's
-        // measured height so the sheet's content never slides underneath the bar.
+        // measured height (0 while hidden) so the sheet's content never slides underneath the
+        // bar when it's shown, and can use the full height when it's hidden.
         bottomNavBar.viewTreeObserver.addOnGlobalLayoutListener {
-            val navBarHeight = bottomNavBar.height
+            val navBarHeight = if (bottomNavBar.visibility == View.VISIBLE) bottomNavBar.height else 0
             val lp = elementsPanel.layoutParams as? CoordinatorLayout.LayoutParams
-            if (navBarHeight > 0 && lp != null && lp.bottomMargin != navBarHeight) {
+            if (lp != null && lp.bottomMargin != navBarHeight) {
                 lp.bottomMargin = navBarHeight
                 elementsPanel.layoutParams = lp
             }
         }
     }
 
+    // Shows bottomNavBar with a short fade-in. Visible by default when SketchActivity opens;
+    // this is also the toggled-on state after tapping empty canvas while it's hidden.
+    private fun showBottomNavBar() {
+        if (bottomNavBar.visibility == View.VISIBLE && bottomNavBar.alpha >= 1f) return
+        bottomNavBar.animate().cancel()
+        bottomNavBar.alpha = 0f
+        bottomNavBar.visibility = View.VISIBLE
+        bottomNavBar.animate().alpha(1f).setDuration(BOTTOM_NAV_BAR_FADE_MS).start()
+    }
+
+    // Hides bottomNavBar with a short fade-out. Toggled by tapping empty canvas while it's shown.
+    private fun hideBottomNavBar() {
+        if (bottomNavBar.visibility != View.VISIBLE) return
+        bottomNavBar.animate().cancel()
+        bottomNavBar.animate()
+            .alpha(0f)
+            .setDuration(BOTTOM_NAV_BAR_FADE_MS)
+            .withEndAction { bottomNavBar.visibility = View.GONE }
+            .start()
+    }
+
+    // Toggles bottomNavBar between shown and hidden. The single gesture entry point: a tap on
+    // empty canvas (see onTapEmptySpace below).
+    private fun toggleBottomNavBar() {
+        if (bottomNavBar.visibility == View.VISIBLE) hideBottomNavBar() else showBottomNavBar()
+    }
+
     // Separate sheet (independent from bottomNavBar) that shows the Components browser. Opened
-    // by tapping the Elements tab or by a long-press on empty canvas; closed by the back
-    // button/gesture, a swipe-down, dragging its handle, or tapping empty canvas. Skips the
-    // collapsed state entirely -
+    // by tapping the Elements tab, a long-press on empty canvas, or a double-tap on empty
+    // canvas; closed by the back button/gesture, a swipe-down, dragging its handle, or tapping
+    // empty canvas. Skips the collapsed state entirely -
     // it's either hidden or fully expanded, never a partial peek.
     private fun setupElementsPanel() {
         elementsPanelBehavior.isDraggable = true
@@ -328,9 +364,9 @@ class SketchActivity : AppCompatActivity() {
         elementsPanel.setPadding(elementsPanel.paddingLeft, extra, elementsPanel.paddingRight, elementsPanel.paddingBottom)
     }
 
-    // Opens elementsPanel. Entry points are a long-press on empty canvas space (see
-    // SketchCanvasView.Listener#onLongPressEmptySpace above) and tapping the Elements tab
-    // directly.
+    // Opens elementsPanel. Entry points are a long-press or a double-tap on empty canvas space
+    // (see SketchCanvasView.Listener#onLongPressEmptySpace / #onDoubleTapEmptySpace above), as
+    // well as tapping the Elements tab directly.
     private fun openElementsPanel() {
         setTabActive(tabComponents)
         showComponentsContent()

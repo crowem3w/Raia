@@ -41,10 +41,16 @@ class SketchCanvasView @JvmOverloads constructor(
         // deleting the selection, etc) so the host can dismiss that panel.
         fun onMultiSelectionCleared()
         // Fired by a long-press on empty canvas space that's released without ever turning into
-        // a marquee drag. The gesture entry point for opening the "Add to sketch" panel.
+        // a marquee drag. One of two gesture entry points for opening the "Add to sketch" panel
+        // - see onDoubleTapEmptySpace below.
         fun onLongPressEmptySpace()
+        // Fired by a double-tap that lands on empty canvas space. Double-tapping an existing part
+        // still resets zoom (see onDoubleTap below) - this is the other gesture entry point for
+        // the panel.
+        fun onDoubleTapEmptySpace()
         // Fired by a plain single tap that lands on empty canvas space (not a part, not a member
-        // of the active multi-selection). Used to dismiss the bottom sketch panel if it's open.
+        // of the active multi-selection). Used to dismiss the bottom sketch panel if it's open
+        // and to toggle bottomNavBar hidden/visible.
         fun onTapEmptySpace()
     }
 
@@ -320,11 +326,8 @@ class SketchCanvasView @JvmOverloads constructor(
         override fun onDoubleTap(e: MotionEvent): Boolean {
             val hit = hitTest(toContentX(e.x), toContentY(e.y))
             if (hit == null) {
-                // Empty space: no longer a panel-opening gesture - just reset zoom like an
-                // on-part double-tap.
-                scaleFactor = 1f
-                clampPan()
-                invalidate()
+                // Empty space: this is a panel-opening gesture, not a zoom-reset.
+                listener?.onDoubleTapEmptySpace()
             } else {
                 scaleFactor = 1f
                 clampPan()
