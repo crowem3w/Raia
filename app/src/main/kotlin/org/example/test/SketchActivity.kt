@@ -6,6 +6,8 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -96,7 +98,8 @@ class SketchActivity : AppCompatActivity() {
     companion object {
         private const val TOP_BAR_AUTO_HIDE_DELAY_MS = 5_000L
         private const val TOP_BAR_FADE_MS = 150L
-        private const val BOTTOM_NAV_BAR_FADE_MS = 150L
+        private const val BOTTOM_NAV_BAR_ANIM_MS = 280L
+        private const val BOTTOM_NAV_BAR_HIDDEN_SCALE = 0.85f
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -277,24 +280,45 @@ class SketchActivity : AppCompatActivity() {
         }
     }
 
-    // Shows bottomNavBar with a short fade-in. Visible by default when SketchActivity opens;
-    // this is also the toggled-on state after tapping empty canvas while it's hidden.
+    // Shows bottomNavBar with a scale + fade grow-in, easing out (fast start, gentle settle).
+    // Visible by default when SketchActivity opens; this is also the toggled-on state after
+    // tapping empty canvas while it's hidden.
     private fun showBottomNavBar() {
         if (bottomNavBar.visibility == View.VISIBLE && bottomNavBar.alpha >= 1f) return
         bottomNavBar.animate().cancel()
+        bottomNavBar.pivotX = bottomNavBar.width / 2f
+        bottomNavBar.pivotY = bottomNavBar.height.toFloat()
         bottomNavBar.alpha = 0f
+        bottomNavBar.scaleX = BOTTOM_NAV_BAR_HIDDEN_SCALE
+        bottomNavBar.scaleY = BOTTOM_NAV_BAR_HIDDEN_SCALE
         bottomNavBar.visibility = View.VISIBLE
-        bottomNavBar.animate().alpha(1f).setDuration(BOTTOM_NAV_BAR_FADE_MS).start()
+        bottomNavBar.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(BOTTOM_NAV_BAR_ANIM_MS)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
     }
 
-    // Hides bottomNavBar with a short fade-out. Toggled by tapping empty canvas while it's shown.
+    // Hides bottomNavBar with a scale + fade shrink-out, easing in (gentle start, fast finish).
+    // Toggled by tapping empty canvas while it's shown.
     private fun hideBottomNavBar() {
         if (bottomNavBar.visibility != View.VISIBLE) return
         bottomNavBar.animate().cancel()
+        bottomNavBar.pivotX = bottomNavBar.width / 2f
+        bottomNavBar.pivotY = bottomNavBar.height.toFloat()
         bottomNavBar.animate()
             .alpha(0f)
-            .setDuration(BOTTOM_NAV_BAR_FADE_MS)
-            .withEndAction { bottomNavBar.visibility = View.GONE }
+            .scaleX(BOTTOM_NAV_BAR_HIDDEN_SCALE)
+            .scaleY(BOTTOM_NAV_BAR_HIDDEN_SCALE)
+            .setDuration(BOTTOM_NAV_BAR_ANIM_MS)
+            .setInterpolator(AccelerateInterpolator())
+            .withEndAction {
+                bottomNavBar.visibility = View.GONE
+                bottomNavBar.scaleX = 1f
+                bottomNavBar.scaleY = 1f
+            }
             .start()
     }
 
