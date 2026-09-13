@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cosmetic-only overlay for the active tab's elevated bubble (see activeBubbleDrawable() in
+     SketchActivity). Sits above the bubble's plain GradientDrawable fill inside a LayerDrawable,
+     so the fill alone still defines the outline used for the bubble's own contact/ambient
+     shadow. A single soft highlight near the upper-left, per design.txt's "very subtle light
+     highlight around its upper-left edge". -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <gradient
+                android:type="linear"
+                android:angle="135"
+                android:startColor="#66FFFFFF"
+                android:centerColor="#00FFFFFF"
+                android:endColor="#00FFFFFF"
+                android:centerX="0.32"
+                android:centerY="0.34" />
+        </shape>
+    </item>
+</layer-list>
