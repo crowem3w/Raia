@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -71,6 +72,12 @@ class SketchActivity : AppCompatActivity() {
     private var navWaveInitialized = false
     private var wavePeakAnimator: ValueAnimator? = null
 
+    // The active tab's own rounded-square "frame" (see NAV_FRAME_* constants) - a small rigid
+    // card-like box built once per tab in styleNavDock() and painted/elevated at runtime in
+    // setTabVisualState() so it visually rides on top of the bent sheet's fold rather than being
+    // part of the fold's own paint.
+    private val tabFrameDrawables = mutableMapOf<LinearLayout, GradientDrawable>()
+
     // Separate sheet that opens above bottomNavBar to show the Components ("Elements") browser.
     // Independent BottomSheetBehavior from anything the nav bar does.
     private lateinit var elementsPanel: FrameLayout
@@ -127,6 +134,28 @@ class SketchActivity : AppCompatActivity() {
         // How far the active icon settles upward into the sheet's raised fold - a nudge, not a
         // separate floating bubble.
         private const val NAV_BUMP_LIFT_DP = 10f
+
+        // --- Active-tab frame (the rounded-square "card" riding on top of the fold) ------------
+        // The bent sheet reads as a flexible surface tilting up toward the viewer; sitting on top
+        // of that, at the very peak of the fold, the active tab gets its own small rigid
+        // rounded-square frame - a distinct, brighter, harder-edged box (its own fill/rim/shadow,
+        // not just a color change) so it reads as a separate solid piece resting on the fold
+        // rather than a paint job on the sheet itself. See styleNavDock (frame built + shadow
+        // wired up) and setTabVisualState (fill/rim/elevation/scale animated per tab).
+        private const val NAV_FRAME_CORNER_DP = 16f
+        private const val NAV_FRAME_STROKE_WIDTH_DP = 1f
+        private const val NAV_FRAME_ELEVATION_ACTIVE_DP = 11f
+        private const val NAV_FRAME_ELEVATION_INACTIVE_DP = 0f
+        // Brighter/whiter than the sheet's own fold-top color so the frame still pops as a
+        // separate piece even sitting right at the fold's brightest point.
+        private val NAV_FRAME_FILL_ACTIVE = Color.argb(255, 255, 255, 253)
+        private val NAV_FRAME_FILL_INACTIVE = Color.argb(0, 255, 255, 253)
+        private val NAV_FRAME_RIM_ACTIVE = Color.argb(215, 255, 255, 255)
+        private val NAV_FRAME_RIM_INACTIVE = Color.argb(0, 255, 255, 255)
+        // A tighter, slightly stronger contact shadow than the sheet's own ambient shadow - this
+        // is a smaller shape sitting closer to what's beneath it, so its shadow should read as
+        // more defined, reinforcing that it's physically resting on the fold rather than part of it.
+        private val NAV_FRAME_SHADOW_COLOR = Color.argb(95, 40, 34, 28)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -345,6 +374,22 @@ class SketchActivity : AppCompatActivity() {
             val bubble = pill.getChildAt(0) as FrameLayout
             bubble.clipChildren = false
             armPressFeedback(bubble)
+
+            // The rounded-square frame itself: a plain GradientDrawable (same recipe as
+            // BottomNavBar's tab frames) so its shape doubles as the bubble's shadow-casting
+            // outline for free - starts fully transparent/flat (inactive) and is faded/elevated
+            // in per-tab by setTabVisualState.
+            val frameDrawable = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(NAV_FRAME_CORNER_DP)
+                setColor(NAV_FRAME_FILL_INACTIVE)
+                setStroke(dp(NAV_FRAME_STROKE_WIDTH_DP).roundToInt(), NAV_FRAME_RIM_INACTIVE)
+            }
+            bubble.background = frameDrawable
+            bubble.outlineAmbientShadowColor = NAV_FRAME_SHADOW_COLOR
+            bubble.outlineSpotShadowColor = NAV_FRAME_SHADOW_COLOR
+            bubble.elevation = dp(NAV_FRAME_ELEVATION_INACTIVE_DP)
+            tabFrameDrawables[tab] = frameDrawable
         }
     }
 
@@ -598,9 +643,60 @@ class SketchActivity : AppCompatActivity() {
         val targetY = if (active) -dp(NAV_BUMP_LIFT_DP) else 0f
         bubble.animate()
             .translationY(targetY)
+            .scaleX(if (active) 1f else 0.94f)
+            .scaleY(if (active) 1f else 0.94f)
             .setDuration(if (active) 380 else 320)
             .setInterpolator(OvershootInterpolator(if (active) 1.15f else 1f))
             .start()
+
+        // The frame itself: fades its fill/rim in and lifts its elevation up off the fold at the
+        // same time the bubble rises, so the rounded-square box reads as one rigid piece riding
+        // up on top of the bent sheet - not a color swap sitting flush with it.
+        val frameDrawable = tabFrameDrawables[tab]
+        if (frameDrawable != null) {
+            val fromFill = (bubble.getTag(R.id.tag_nav_frame_fill) as? Int)
+                ?: (if (active) NAV_FRAME_FILL_INACTIVE else NAV_FRAME_FILL_ACTIVE)
+            val toFill = if (active) NAV_FRAME_FILL_ACTIVE else NAV_FRAME_FILL_INACTIVE
+            val fromRim = (bubble.getTag(R.id.tag_nav_frame_rim) as? Int)
+                ?: (if (active) NAV_FRAME_RIM_INACTIVE else NAV_FRAME_RIM_ACTIVE)
+            val toRim = if (active) NAV_FRAME_RIM_ACTIVE else NAV_FRAME_RIM_INACTIVE
+            bubble.setTag(R.id.tag_nav_frame_fill, toFill)
+            bubble.setTag(R.id.tag_nav_frame_rim, toRim)
+
+            val strokeWidthPx = dp(NAV_FRAME_STROKE_WIDTH_DP).roundToInt()
+            ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = if (active) 380 else 320
+                interpolator = OvershootInterpolator(if (active) 1.15f else 1f)
+                addUpdateListener { anim ->
+                    val t = anim.animatedValue as Float
+                    frameDrawable.setColor(blendArgb(fromFill, toFill, t))
+                    frameDrawable.setStroke(strokeWidthPx, blendArgb(fromRim, toRim, t))
+                }
+                start()
+            }
+
+            val fromElevation = bubble.elevation
+            val toElevation = dp(if (active) NAV_FRAME_ELEVATION_ACTIVE_DP else NAV_FRAME_ELEVATION_INACTIVE_DP)
+            ValueAnimator.ofFloat(fromElevation, toElevation).apply {
+                duration = if (active) 380 else 320
+                interpolator = OvershootInterpolator(if (active) 1.15f else 1f)
+                addUpdateListener { bubble.elevation = it.animatedValue as Float }
+                start()
+            }
+        }
+    }
+
+    // Simple per-channel ARGB blend (avoids pulling in androidx.core just for this one animation).
+    // Channels are clamped since the overshoot interpolator driving this can push t slightly
+    // outside [0, 1] at the tail of the animation.
+    private fun blendArgb(from: Int, to: Int, t: Float): Int {
+        fun mix(a: Int, b: Int): Int = (a + (b - a) * t).roundToInt().coerceIn(0, 255)
+        return Color.argb(
+            mix(Color.alpha(from), Color.alpha(to)),
+            mix(Color.red(from), Color.red(to)),
+            mix(Color.green(from), Color.green(to)),
+            mix(Color.blue(from), Color.blue(to)),
+        )
     }
 
 
