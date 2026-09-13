@@ -2,12 +2,10 @@ package org.example.test
 
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.Outline
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
-import android.view.ViewOutlineProvider
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
@@ -72,13 +70,10 @@ class SketchActivity : AppCompatActivity() {
     private var componentsContentBuilt = false
     private var showingComponents = false
 
-    // bottomNavBar's own XML bottom margin (20dp - the gap that makes it float as a pill above
-    // the edge instead of a full-width bar), captured once, plus whatever the bottom
-    // system-gesture inset turns out to be, so the pill doesn't end up sitting under the
-    // system's own gesture/navigation bar. This is a margin (not padding, as it was when the bar
-    // was a flat docked sheet) so the extra space pushes the whole pill up rather than stretching
-    // the sheet's internal padding.
-    private var bottomNavBarBaseMarginBottom = 0
+    // bottomNavBar's own XML paddingBottom (18dp), captured once, plus whatever the bottom
+    // system-gesture inset turns out to be, so the nav bar's tap targets aren't obscured by the
+    // system's own gesture/navigation bar.
+    private var bottomNavBarBasePaddingBottom = 0
 
     // elementsPanel has no top padding of its own. Since the sheet only ever toggles between
     // hidden and fully expanded (skipCollapsed), when expanded it reaches the physical top of
@@ -254,51 +249,32 @@ class SketchActivity : AppCompatActivity() {
 
 
 
-    // Fixed bottom navigation bar (Select/Pages/Text/Upload/Elements), now a floating pill
-    // (see bg_bottom_nav_pill + activity_sketch.xml) rather than a bar docked flush to the
-    // screen edge. Visible on launch; not a BottomSheetBehavior sheet, so there's no
-    // drag/collapse state to manage - just window-inset margin, a pill-shaped elevation shadow,
-    // keeping elementsPanel docked above it, and the show/hide toggle below.
+    // Fixed bottom navigation bar (Select/Pages/Text/Upload/Elements). Visible on launch; not a
+    // BottomSheetBehavior sheet, so there's no drag/collapse state to manage, just window-inset
+    // padding, keeping elementsPanel docked above it, and the show/hide toggle below.
     private fun setupBottomNavBar() {
-        val lp = bottomNavBar.layoutParams as CoordinatorLayout.LayoutParams
-        bottomNavBarBaseMarginBottom = lp.bottomMargin
-        ViewCompat.setOnApplyWindowInsetsListener(bottomNavBar) { view, insets ->
+        bottomNavBarBasePaddingBottom = bottomNavBar.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(bottomNavBar) { _, insets ->
             val navInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-            val marginLp = view.layoutParams as CoordinatorLayout.LayoutParams
-            marginLp.bottomMargin = bottomNavBarBaseMarginBottom + navInset
-            view.layoutParams = marginLp
+            bottomNavBar.setPadding(
+                bottomNavBar.paddingLeft,
+                bottomNavBar.paddingTop,
+                bottomNavBar.paddingRight,
+                bottomNavBarBasePaddingBottom + navInset,
+            )
             insets
-        }
-
-        // bg_bottom_nav_pill draws its pill via two rotated/inset layers to fake a tilted
-        // sheet, so the default View outline (a plain rect covering the whole background,
-        // rotation and insets ignored) would cast a rectangular shadow around a round pill.
-        // Give it an explicit pill-shaped outline instead, matched to the pill's fully-rounded
-        // corner radius (half the view's own height) so the elevation shadow reads as coming
-        // from the rounded sheet rather than an invisible bounding box.
-        bottomNavBar.clipToOutline = false
-        bottomNavBar.outlineProvider = object : ViewOutlineProvider() {
-            override fun getOutline(view: View, outline: Outline) {
-                val radius = view.height / 2f
-                outline.setRoundRect(0, 0, view.width, view.height, radius)
-            }
         }
 
         // elementsPanel is a sibling sheet, not a child of bottomNavBar, so it doesn't
         // automatically stop above it - keep its bottom margin matched to the nav bar's
-        // measured height plus the pill's own bottom margin (0 while hidden) so the sheet's
-        // content never slides underneath the floating pill when it's shown, and can use the
-        // full height when it's hidden.
+        // measured height (0 while hidden) so the sheet's content never slides underneath the
+        // bar when it's shown, and can use the full height when it's hidden.
         bottomNavBar.viewTreeObserver.addOnGlobalLayoutListener {
-            val navBarSpace = if (bottomNavBar.visibility == View.VISIBLE) {
-                bottomNavBar.height + (bottomNavBar.layoutParams as CoordinatorLayout.LayoutParams).bottomMargin
-            } else {
-                0
-            }
-            val elementsLp = elementsPanel.layoutParams as? CoordinatorLayout.LayoutParams
-            if (elementsLp != null && elementsLp.bottomMargin != navBarSpace) {
-                elementsLp.bottomMargin = navBarSpace
-                elementsPanel.layoutParams = elementsLp
+            val navBarHeight = if (bottomNavBar.visibility == View.VISIBLE) bottomNavBar.height else 0
+            val lp = elementsPanel.layoutParams as? CoordinatorLayout.LayoutParams
+            if (lp != null && lp.bottomMargin != navBarHeight) {
+                lp.bottomMargin = navBarHeight
+                elementsPanel.layoutParams = lp
             }
         }
     }

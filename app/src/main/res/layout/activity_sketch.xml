@@ -162,25 +162,21 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Bottom navigation bar: a plain, always-visible tab bar floating as a pill above the
-         bottom edge of the screen (NOT a BottomSheetBehavior sheet - it never drags, collapses,
-         or hides). Tapping Shapes/Text/Upload opens its own modal picker/dialog; tapping
-         Elements opens elementsPanel below, a separate sheet that floats above this bar (see
-         setupBottomNavBar / setupElementsPanel in SketchActivity). Its background
-         (bg_bottom_nav_pill) draws it as a thin tilted sheet rather than a flat pill - see that
-         drawable for the depth illusion - and setupBottomNavBar gives it a matching pill-shaped
-         elevation shadow at runtime, since a plain View outline can't follow the drawable's
-         rotated layers. -->
+    <!-- Bottom navigation bar: a plain, always-visible tab bar docked to the bottom edge of the
+         screen (NOT a BottomSheetBehavior sheet - it never drags, collapses, or hides). Tapping
+         Shapes/Text/Upload opens its own modal picker/dialog; tapping Elements opens
+         elementsPanel below, a separate sheet that floats above this bar (see setupBottomNavBar /
+         setupElementsPanel in SketchActivity). -->
     <LinearLayout
         android:id="@+id/bottomNavBar"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginHorizontal="28dp"
-        android:layout_marginBottom="20dp"
+        android:layout_gravity="bottom"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="16dp"
         android:orientation="horizontal"
         android:background="@drawable/bg_bottom_nav_pill"
-        android:paddingHorizontal="10dp"
+        android:paddingHorizontal="16dp"
         android:paddingTop="14dp"
         android:paddingBottom="16dp"
         android:elevation="8dp">

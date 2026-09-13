@@ -1,49 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Bottom nav bar background: a pill-shaped "sheet" with a visible 2px edge, tilted a
-    couple of degrees so the edge peeks out unevenly on either side instead of forming a
-    perfectly even ring underneath the top face. That unevenness (plus the top face being
-    tilted along with it) is what reads as a thin, slightly-angled physical slab rather than
-    a flat pill with a drop shadow.
+    Floating pill-shaped bottom nav bar, drawn to read as a 2px-thick 3D sheet:
 
-    Layer 1 (bottom) = the edge/underside of the sheet, offset down by the full 2px
-    thickness before rotation.
-    Layer 2 (top)    = the sheet's face, same shape/rotation, sitting 2px above the edge.
+    1. "edge" layer - a solid, darker stadium shape that fills the whole bounds. Because the
+       "face" layer above it is inset 2dp off the bottom, this layer peeks out as a slim strip
+       along the bottom, reading as the visible cut edge of a sheet with real thickness.
+    2. "face" layer - the top surface of the sheet: a subtle top-to-bottom gradient (lighter at
+       the top where light would catch a curved/beveled sheet, darker toward the bottom edge)
+       plus a hairline highlight stroke to sell a raised, lit-from-above panel rather than a
+       flat-colored rectangle.
+
+    Corner radius is set larger than half the bar's height so it always resolves to a true
+    stadium/pill (Android clamps radius to min(width,height)/2 automatically).
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Edge: dark, unlit underside of the 2px-thick slab. -->
-    <item android:top="2dp">
-        <rotate
-            android:fromDegrees="-1.6"
-            android:toDegrees="-1.6"
-            android:pivotX="50%"
-            android:pivotY="50%">
-            <shape android:shape="rectangle">
-                <solid android:color="#0A0A10" />
-                <corners android:radius="999dp" />
-            </shape>
-        </rotate>
+    <!-- Edge / thickness layer -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#0A0A12" />
+            <corners android:radius="100dp" />
+        </shape>
     </item>
 
-    <!-- Face: the visible top of the sheet. A vertical gradient plus a hairline top stroke
-         stand in for a light source grazing the tilted surface, and the bottom inset holds
-         it 2px above the edge layer so the thickness always shows. -->
+    <!-- Top face layer, inset off the bottom so 2dp of the edge layer shows beneath it -->
     <item android:bottom="2dp">
-        <rotate
-            android:fromDegrees="-1.6"
-            android:toDegrees="-1.6"
-            android:pivotX="50%"
-            android:pivotY="50%">
-            <shape android:shape="rectangle">
-                <gradient
-                    android:angle="90"
-                    android:startColor="#1E2029"
-                    android:endColor="#121319" />
-                <corners android:radius="999dp" />
-                <stroke android:width="0.75dp" android:color="#2E303F" />
-            </shape>
-        </rotate>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="90"
+                android:startColor="#22232F"
+                android:centerColor="#191A24"
+                android:endColor="#131319"
+                android:type="linear" />
+            <corners android:radius="100dp" />
+            <stroke
+                android:width="1dp"
+                android:color="#33FFFFFF" />
+        </shape>
     </item>
 
 </layer-list>
