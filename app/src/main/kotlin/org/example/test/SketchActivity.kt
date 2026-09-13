@@ -2,13 +2,8 @@ package org.example.test
 
 import android.animation.ValueAnimator
 import android.content.Intent
-import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.Typeface
-import android.graphics.drawable.Drawable
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.InsetDrawable
-import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -22,7 +17,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -64,10 +58,13 @@ class SketchActivity : AppCompatActivity() {
     private lateinit var actionHideToggleSel: LinearLayout
     private lateinit var actionDeleteSel: LinearLayout
 
-    // Fixed, always-visible bottom navigation bar - a LinearLayout styled at runtime as a
-    // floating glassmorphic dock (see styleNavDock), not a BottomSheetBehavior sheet. Never
-    // drags, collapses, or hides.
-    private lateinit var bottomNavBar: LinearLayout
+    // Fixed, always-visible bottom navigation bar - a FrameLayout whose two layers are
+    // navDockSurface (paints the folded/sculpted dock surface, see NavDockFoldView and
+    // styleNavDock) and navTabRow (the actual tab icons/labels on top). Not a
+    // BottomSheetBehavior sheet. Never drags, collapses, or hides.
+    private lateinit var bottomNavBar: FrameLayout
+    private lateinit var navDockSurface: NavDockFoldView
+    private lateinit var navTabRow: LinearLayout
 
     // Separate sheet that opens above bottomNavBar to show the Components ("Elements") browser.
     // Independent BottomSheetBehavior from anything the nav bar does.
@@ -107,18 +104,19 @@ class SketchActivity : AppCompatActivity() {
         private const val TOP_BAR_AUTO_HIDE_DELAY_MS = 5_000L
         private const val TOP_BAR_FADE_MS = 150L
 
-        // --- Floating glassmorphic bottom dock (design.txt) -----------------------------------
+        // --- Sculpted bottom dock (design.txt) -------------------------------------------
         // Warm, minimal, almost-monochromatic palette per design.txt - no saturated "selected"
         // color, just a brighter/darker surface and stronger contrast for the active state.
-        private val NAV_DOCK_FILL = Color.argb(224, 247, 245, 240) // warm-white glass base
-        private val NAV_BUBBLE_FILL = Color.argb(255, 254, 252, 248) // brighter warm white
+        // The dock's own fill/shadow colors now live in NavDockFoldView (the surface itself is
+        // painted there); only the icon/label tint colors are still needed here.
         private const val NAV_ICON_ACTIVE = 0xFF2B2A2E.toInt()
         private const val NAV_ICON_INACTIVE = 0xFF9C99A0.toInt()
         private const val NAV_LABEL_ACTIVE = 0xFF2B2A2E.toInt()
         private const val NAV_LABEL_INACTIVE = 0xFFA6A3AC.toInt()
-        // Ambient/contact shadow tint for both the dock and the active bubble - warm and low
-        // opacity throughout so it never reads as a dark, muddy drop shadow.
-        private val NAV_SHADOW_COLOR = Color.argb(60, 40, 34, 28)
+
+        // How far the active icon/label rise into the headroom navDockSurface reserves above
+        // its flat edge for the raised island - must match NavDockFoldView's islandRise.
+        private const val NAV_ISLAND_RISE_DP = 20
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -150,6 +148,8 @@ class SketchActivity : AppCompatActivity() {
         actionDeleteSel = findViewById(R.id.actionDeleteSel)
 
         bottomNavBar = findViewById(R.id.bottomNavBar)
+        navDockSurface = findViewById(R.id.navDockSurface)
+        navTabRow = findViewById(R.id.navTabRow)
         elementsPanel = findViewById(R.id.elementsPanel)
         componentsContentContainer = findViewById(R.id.componentsContentContainer)
         elementsPanelBehavior = BottomSheetBehavior.from(elementsPanel)
@@ -266,11 +266,12 @@ class SketchActivity : AppCompatActivity() {
 
 
 
-    // Fixed bottom navigation bar (Select/Pages/Text/Upload/Elements), styled as a floating
-    // glassmorphic dock per design.txt - see styleNavDock() for the actual surface/bubble
-    // construction. Always visible - not a BottomSheetBehavior sheet, so there's no
-    // drag/collapse/hide state to manage here, just window-inset-aware floating margins and
-    // keeping elementsPanel docked above it.
+    // Fixed bottom navigation bar (Select/Pages/Text/Upload/Elements), styled as a continuous
+    // sculpted/folding dock per design.txt - see NavDockFoldView for the actual surface/fold
+    // construction and moveFoldTo() for how it's kept in sync with the active tab. Always
+    // visible - not a BottomSheetBehavior sheet, so there's no drag/collapse/hide state to
+    // manage here, just window-inset-aware floating margins, keeping elementsPanel docked above
+    // it, and placing the fold once the row has an actual measured width.
     private fun setupBottomNavBar() {
         styleNavDock()
 
@@ -287,6 +288,7 @@ class SketchActivity : AppCompatActivity() {
         // automatically stop above it - keep its bottom margin matched to the dock's full
         // footprint (its own measured height *plus* the floating gap beneath it) so the sheet's
         // content never slides underneath the dock, or leaves a stray gap above it.
+        var foldPlaced = false
         bottomNavBar.viewTreeObserver.addOnGlobalLayoutListener {
             val dockLp = bottomNavBar.layoutParams as CoordinatorLayout.LayoutParams
             val dockFootprint = bottomNavBar.height + dockLp.bottomMargin
@@ -295,30 +297,41 @@ class SketchActivity : AppCompatActivity() {
                 panelLp.bottomMargin = dockFootprint
                 elementsPanel.layoutParams = panelLp
             }
+
+            // Once the tab row has an actual measured width, snap the fold under the
+            // currently-active tab with no animation - there's nothing to animate from yet.
+            if (!foldPlaced && tabSelect.width > 0) {
+                foldPlaced = true
+                moveFoldTo(currentActiveTab ?: tabSelect, animate = false)
+            }
         }
+    }
+
+    // Tracks whichever tab is currently active so the dock-fold listener above (and anything
+    // else) can find it without re-deriving it from view state.
+    private var currentActiveTab: LinearLayout? = null
+
+    // Moves navDockSurface's fold to sit under [tab]'s icon bubble. Reads the tab's own
+    // post-layout position, so this only produces a sensible result once navTabRow has been
+    // measured/laid out at least once (guarded by the caller where relevant).
+    private fun moveFoldTo(tab: LinearLayout, animate: Boolean) {
+        if (tab.width == 0) return
+        val centerX = tab.x + tab.width / 2f
+        navDockSurface.setActiveCenter(centerX, animate)
     }
 
     private fun dp(v: Int): Float = v * resources.displayMetrics.density
     private fun dp(v: Float): Float = v * resources.displayMetrics.density
 
-    // Builds the floating glass dock surface itself: a warm-white translucent capsule (a plain
-    // GradientDrawable, left undecorated so its rounded-rect outline drives a clean, correctly-
-    // shaped elevation shadow) plus a separate cosmetic foreground layer for the top-edge sheen
-    // and hairline stroke. Also gives the dock its own soft, wide, warm-tinted ambient shadow so
-    // it reads as suspended above the canvas, and arms every tab's icon bubble with the tactile
-    // press micro-interaction, independent of which tab is active.
+    // The dock's actual surface (fill, fold/valley shape, and all its shadows) is now painted
+    // by navDockSurface (see NavDockFoldView) so it can bend/fold around the active tab as one
+    // continuous piece. This just makes sure nothing in the view hierarchy clips that surface
+    // or the icon that rises into it, and arms every tab's icon bubble with the tactile press
+    // micro-interaction, independent of which tab is active.
     private fun styleNavDock() {
         bottomNavBar.clipChildren = false
         bottomNavBar.clipToPadding = false
-        bottomNavBar.background = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(40)
-            setColor(NAV_DOCK_FILL)
-        }
-        bottomNavBar.foreground = ContextCompat.getDrawable(this, R.drawable.fg_nav_dock_sheen)
-        bottomNavBar.elevation = dp(18)
-        bottomNavBar.outlineAmbientShadowColor = NAV_SHADOW_COLOR
-        bottomNavBar.outlineSpotShadowColor = NAV_SHADOW_COLOR
+        navTabRow.clipChildren = false
 
         for (tab in allTabs) {
             tab.clipChildren = false
@@ -328,21 +341,6 @@ class SketchActivity : AppCompatActivity() {
             bubble.clipChildren = false
             armPressFeedback(bubble)
         }
-    }
-
-    // The active tab's elevated "bubble": a rounded-square capsule (brighter warm white than the
-    // dock, per design.txt's "slightly brighter surface... rather than saturated colors") with a
-    // soft upper-left highlight layered on top, wrapped in a small inset so it sits with visible
-    // negative space inside its fixed hit-box rather than filling it edge to edge - part of what
-    // makes it read as a separate, physically lifted shape rather than a filled-in square.
-    private fun activeBubbleDrawable(): Drawable {
-        val fill = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(24)
-            setColor(NAV_BUBBLE_FILL)
-        }
-        val sheen = ContextCompat.getDrawable(this, R.drawable.fg_nav_bubble_sheen)!!
-        return InsetDrawable(LayerDrawable(arrayOf(fill, sheen)), dp(2).roundToInt())
     }
 
     // Tiny tactile press feedback (design.txt: ~0.96-0.98 scale reduction, 1-2dp downward nudge,
@@ -539,15 +537,21 @@ class SketchActivity : AppCompatActivity() {
 
 
     private fun setTabActive(active: LinearLayout) {
+        currentActiveTab = active
         for (tab in allTabs) setTabVisualState(tab, tab === active)
+        // Travel the fold itself to the new tab - navDockSurface no-ops gracefully if the row
+        // hasn't been laid out yet (setupBottomNavBar's layout listener places it once it has).
+        moveFoldTo(active, animate = true)
     }
 
-    // Animates a tab between its flat, in-dock resting look and the elevated "bubble" look from
-    // design.txt: the active icon lifts into a separate rounded capsule that overlaps the dock's
-    // top edge with its own layered shadow, spring-settling into place (slight overshoot rather
-    // than a sharp snap), while every other icon just fades back down flat and dim into the dock
-    // surface. Both directions share the same easing so a tab switch reads as one continuous
-    // motion - one bubble descending as the other rises - rather than two unrelated snaps.
+    // Animates a tab between its flat, in-dock resting look and the raised-island look from
+    // design.txt: the active icon rises to sit on top of the island navDockSurface folds up
+    // around it (see moveFoldTo/NavDockFoldView), spring-settling into place (slight overshoot
+    // rather than a sharp snap), while every other icon just fades back down flat and dim onto
+    // the dock surface. Both directions share the same easing so a tab switch reads as one
+    // continuous motion - one icon sinking back into the material as the other rises out of it
+    // - rather than two unrelated snaps. Unlike the old design, the icon itself no longer carries
+    // its own background/elevation/shadow - the surface it's sitting on is doing that work now.
     private fun setTabVisualState(tab: LinearLayout, active: Boolean) {
         val pill = tab.getChildAt(0) as LinearLayout
         val bubble = pill.getChildAt(0) as FrameLayout
@@ -568,19 +572,13 @@ class SketchActivity : AppCompatActivity() {
 
         bubble.animate().cancel()
         if (active) {
-            bubble.background = activeBubbleDrawable()
-            bubble.elevation = dp(12)
-            bubble.outlineAmbientShadowColor = NAV_SHADOW_COLOR
-            bubble.outlineSpotShadowColor = NAV_SHADOW_COLOR
             bubble.scaleX = 0.94f
             bubble.scaleY = 0.94f
-            bubble.alpha = 0f
             bubble.animate()
-                .translationY(-dp(16))
+                .translationY(-dp(NAV_ISLAND_RISE_DP))
                 .scaleX(1f)
                 .scaleY(1f)
-                .alpha(1f)
-                .setDuration(380)
+                .setDuration(360)
                 .setInterpolator(OvershootInterpolator(1.15f))
                 .start()
         } else {
@@ -588,13 +586,8 @@ class SketchActivity : AppCompatActivity() {
                 .translationY(0f)
                 .scaleX(1f)
                 .scaleY(1f)
-                .alpha(1f)
                 .setDuration(320)
                 .setInterpolator(OvershootInterpolator(1f))
-                .withEndAction {
-                    bubble.background = null
-                    bubble.elevation = 0f
-                }
                 .start()
         }
     }
