@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Main tools tab bar -->
+    <!-- Main tools tab bar. bottomNavBar is now a wrap_content pill (see
+         bg_bottom_nav_pill/activity_sketch.xml) rather than a full-width bar, so columns size to
+         their own content and space themselves with a margin instead of stretching via
+         layout_weight - weighted 0dp-width children never got their fair share once the parent
+         stopped being match_parent. -->
     <style name="SketchTabColumn">
-        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_weight">1</item>
+        <item name="android:layout_marginHorizontal">2dp</item>
         <item name="android:gravity">center</item>
     </style>
 

@@ -2,10 +2,12 @@ package org.example.test
 
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Outline
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.view.ViewOutlineProvider
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
@@ -56,22 +58,11 @@ class SketchActivity : AppCompatActivity() {
     private lateinit var actionHideToggleSel: LinearLayout
     private lateinit var actionDeleteSel: LinearLayout
 
-    // Bottom navigation bar - a pill-shaped FrameLayout docked to the bottom edge, not a
+    // Bottom navigation bar - a plain LinearLayout docked to the bottom edge, not a
     // BottomSheetBehavior sheet. Visible by default when SketchActivity opens; toggled
     // hidden/visible by tapping empty canvas (see onTapEmptySpace below). Never drags or
     // collapses - it's either fully shown or fully hidden.
-    //
-    // It has two children sharing the same padded coordinate space: navBendOverlay (the
-    // trompe-l'oeil sheet-bend painter) underneath, and navTabsRow (the real tappable tabs) on
-    // top. See setupBottomNavBar/setTabActive/syncBendOverlayToActiveTab.
-    private lateinit var bottomNavBar: FrameLayout
-    private lateinit var navBendOverlay: SheetBendIndicatorView
-    private lateinit var navTabsRow: LinearLayout
-
-    // Which tab is currently "active" for the purposes of positioning navBendOverlay's bump +
-    // raised card. Kept in sync by setTabActive; re-read by syncBendOverlayToActiveTab whenever
-    // the bar's layout changes (e.g. rotation) so the illusion never drifts from the real tab.
-    private var activeTab: LinearLayout? = null
+    private lateinit var bottomNavBar: LinearLayout
 
     // Separate sheet that opens above bottomNavBar to show the Components ("Elements") browser.
     // Independent BottomSheetBehavior from anything the nav bar does.
@@ -81,10 +72,13 @@ class SketchActivity : AppCompatActivity() {
     private var componentsContentBuilt = false
     private var showingComponents = false
 
-    // bottomNavBar's own XML paddingBottom (18dp), captured once, plus whatever the bottom
-    // system-gesture inset turns out to be, so the nav bar's tap targets aren't obscured by the
-    // system's own gesture/navigation bar.
-    private var bottomNavBarBasePaddingBottom = 0
+    // bottomNavBar's own XML bottom margin (20dp - the gap that makes it float as a pill above
+    // the edge instead of a full-width bar), captured once, plus whatever the bottom
+    // system-gesture inset turns out to be, so the pill doesn't end up sitting under the
+    // system's own gesture/navigation bar. This is a margin (not padding, as it was when the bar
+    // was a flat docked sheet) so the extra space pushes the whole pill up rather than stretching
+    // the sheet's internal padding.
+    private var bottomNavBarBaseMarginBottom = 0
 
     // elementsPanel has no top padding of its own. Since the sheet only ever toggles between
     // hidden and fully expanded (skipCollapsed), when expanded it reaches the physical top of
@@ -141,8 +135,6 @@ class SketchActivity : AppCompatActivity() {
         actionDeleteSel = findViewById(R.id.actionDeleteSel)
 
         bottomNavBar = findViewById(R.id.bottomNavBar)
-        navBendOverlay = findViewById(R.id.navBendOverlay)
-        navTabsRow = findViewById(R.id.navTabsRow)
         elementsPanel = findViewById(R.id.elementsPanel)
         componentsContentContainer = findViewById(R.id.componentsContentContainer)
         elementsPanelBehavior = BottomSheetBehavior.from(elementsPanel)
@@ -262,64 +254,53 @@ class SketchActivity : AppCompatActivity() {
 
 
 
-    // Fixed bottom navigation bar (Select/Pages/Text/Upload/Elements). Visible on launch; not a
-    // BottomSheetBehavior sheet, so there's no drag/collapse state to manage, just window-inset
-    // padding, keeping elementsPanel docked above it, and the show/hide toggle below.
+    // Fixed bottom navigation bar (Select/Pages/Text/Upload/Elements), now a floating pill
+    // (see bg_bottom_nav_pill + activity_sketch.xml) rather than a bar docked flush to the
+    // screen edge. Visible on launch; not a BottomSheetBehavior sheet, so there's no
+    // drag/collapse state to manage - just window-inset margin, a pill-shaped elevation shadow,
+    // keeping elementsPanel docked above it, and the show/hide toggle below.
     private fun setupBottomNavBar() {
-        bottomNavBarBasePaddingBottom = bottomNavBar.paddingBottom
-        ViewCompat.setOnApplyWindowInsetsListener(bottomNavBar) { _, insets ->
+        val lp = bottomNavBar.layoutParams as CoordinatorLayout.LayoutParams
+        bottomNavBarBaseMarginBottom = lp.bottomMargin
+        ViewCompat.setOnApplyWindowInsetsListener(bottomNavBar) { view, insets ->
             val navInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-            bottomNavBar.setPadding(
-                bottomNavBar.paddingLeft,
-                bottomNavBar.paddingTop,
-                bottomNavBar.paddingRight,
-                bottomNavBarBasePaddingBottom + navInset,
-            )
+            val marginLp = view.layoutParams as CoordinatorLayout.LayoutParams
+            marginLp.bottomMargin = bottomNavBarBaseMarginBottom + navInset
+            view.layoutParams = marginLp
             insets
+        }
+
+        // bg_bottom_nav_pill draws its pill via two rotated/inset layers to fake a tilted
+        // sheet, so the default View outline (a plain rect covering the whole background,
+        // rotation and insets ignored) would cast a rectangular shadow around a round pill.
+        // Give it an explicit pill-shaped outline instead, matched to the pill's fully-rounded
+        // corner radius (half the view's own height) so the elevation shadow reads as coming
+        // from the rounded sheet rather than an invisible bounding box.
+        bottomNavBar.clipToOutline = false
+        bottomNavBar.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) {
+                val radius = view.height / 2f
+                outline.setRoundRect(0, 0, view.width, view.height, radius)
+            }
         }
 
         // elementsPanel is a sibling sheet, not a child of bottomNavBar, so it doesn't
         // automatically stop above it - keep its bottom margin matched to the nav bar's
-        // total on-screen footprint (0 while hidden) so the sheet's content never slides
-        // underneath the bar when it's shown, and can use the full height when it's hidden. The
-        // nav bar now floats with its own bottom margin (it's a pill, not an edge-to-edge dock),
-        // so that margin has to be folded in too or the panel would end a gap short of the pill.
+        // measured height plus the pill's own bottom margin (0 while hidden) so the sheet's
+        // content never slides underneath the floating pill when it's shown, and can use the
+        // full height when it's hidden.
         bottomNavBar.viewTreeObserver.addOnGlobalLayoutListener {
-            val navBarMarginBottom = (bottomNavBar.layoutParams as? CoordinatorLayout.LayoutParams)?.bottomMargin ?: 0
-            val navBarHeight = if (bottomNavBar.visibility == View.VISIBLE) {
-                bottomNavBar.height + navBarMarginBottom
+            val navBarSpace = if (bottomNavBar.visibility == View.VISIBLE) {
+                bottomNavBar.height + (bottomNavBar.layoutParams as CoordinatorLayout.LayoutParams).bottomMargin
             } else {
                 0
             }
-            val lp = elementsPanel.layoutParams as? CoordinatorLayout.LayoutParams
-            if (lp != null && lp.bottomMargin != navBarHeight) {
-                lp.bottomMargin = navBarHeight
-                elementsPanel.layoutParams = lp
-            }
-
-            // Keep the sheet-bend illusion aligned with whichever tab is actually active any
-            // time the bar genuinely relays out (first layout, rotation, inset changes) - but
-            // never fight a tap-triggered move that's mid-animation.
-            if (!navBendOverlay.isAnimating) {
-                syncBendOverlayToActiveTab(animate = false)
+            val elementsLp = elementsPanel.layoutParams as? CoordinatorLayout.LayoutParams
+            if (elementsLp != null && elementsLp.bottomMargin != navBarSpace) {
+                elementsLp.bottomMargin = navBarSpace
+                elementsPanel.layoutParams = elementsLp
             }
         }
-    }
-
-    // Positions navBendOverlay's bump + raised card under [activeTab]'s pill. Coordinates are
-    // computed relative to navBendOverlay/navTabsRow's shared padded content box: since both are
-    // direct children of the same FrameLayout with identical padding, tab.left + pill.left maps
-    // straight across without any additional offset math.
-    private fun syncBendOverlayToActiveTab(animate: Boolean) {
-        val tab = activeTab ?: return
-        if (tab.childCount == 0) return
-        val pill = tab.getChildAt(0) as? LinearLayout ?: return
-        if (pill.width == 0 || pill.height == 0) return
-
-        val centerX = (tab.left + pill.left + pill.width / 2f)
-        val halfWidth = pill.width / 2f
-        val halfHeight = pill.height / 2f
-        navBendOverlay.setActiveTab(centerX, halfWidth, halfHeight, animate)
     }
 
     // Shows bottomNavBar by sliding up into place while fading in, easing out (fast start,
@@ -527,21 +508,12 @@ class SketchActivity : AppCompatActivity() {
 
 
     private fun setTabActive(active: LinearLayout) {
-        val changed = activeTab !== active
-        activeTab = active
         for (tab in allTabs) setTabVisualState(tab, tab === active)
-        // Only animate the bend+card sliding over when the active tab actually changed - avoids
-        // a pointless re-animation if setTabActive is ever called again for the same tab.
-        if (changed) {
-            navTabsRow.post { syncBendOverlayToActiveTab(animate = true) }
-        }
     }
 
     private fun setTabVisualState(tab: LinearLayout, active: Boolean) {
-        // The selected-state background is no longer painted per-tab here - navBendOverlay
-        // draws the raised card (and the bent-sheet bump beneath it) at the active tab's
-        // position instead, so only the icon/label color changes.
         val pill = tab.getChildAt(0) as LinearLayout
+        pill.setBackgroundResource(if (active) R.drawable.bg_tab_selected else 0)
         val color = if (active) Color.WHITE else Color.parseColor("#9A9AA5")
         when (val icon = pill.getChildAt(0)) {
             is ImageView -> icon.setColorFilter(color)
