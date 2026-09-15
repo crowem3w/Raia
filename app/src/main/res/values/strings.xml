@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Generated App</string>
+    <string name="fragment_home_label_0">Home</string>
+    <string name="fragment_home_label_1">Home pay bdjs</string>
+    <string name="fragment_home_label_2">Nsjsjsk</string>
+    <string name="fragment_home_label_3">Nav bar</string>
+    <string name="fragment_onboarding_label_0">Image</string>
+    <string name="fragment_onboarding_label_1">Onboarding </string>
+    <string name="fragment_onboarding_label_2">Get started</string>
+</resources>
