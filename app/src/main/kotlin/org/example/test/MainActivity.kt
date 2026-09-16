@@ -7,6 +7,7 @@ import androidx.fragment.app.Fragment
 
 /**
  * Single-Activity host: swaps a full-screen Fragment per screen into fragment_container.
+ * Launches to Splash, which calls advanceFromSplash() after a short delay.
  * Onboarding is shown once per install; completion is persisted in SharedPreferences.
  */
 class MainActivity : AppCompatActivity() {
@@ -17,8 +18,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         if (savedInstanceState == null) {
-            showFragment(resolvePostSplashFragment())
+            showFragment(SplashFragment())
         }
+    }
+
+    /** Called by SplashFragment once its delay elapses. */
+    fun advanceFromSplash() {
+        showFragment(resolvePostSplashFragment())
     }
 
     private fun resolvePostSplashFragment(): Fragment =

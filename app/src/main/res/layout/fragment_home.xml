@@ -11,28 +11,18 @@
         android:layout_gravity="top"
         android:title="@string/fragment_home_label_0" />
 
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/fragment_home_1"
-        android:layout_width="200dp"
-        android:layout_height="140dp"
-        android:layout_gravity="top|start"
-        android:layout_marginStart="116dp"
-        android:layout_marginTop="129dp"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="2dp" />
-
     <TextView
-        android:id="@+id/fragment_home_2"
+        android:id="@+id/fragment_home_1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
-        android:layout_marginStart="34dp"
-        android:layout_marginTop="669dp"
-        android:textSize="16sp"
-        android:text="@string/fragment_home_label_2" />
+        android:layout_marginStart="18dp"
+        android:layout_marginTop="162dp"
+        android:textSize="31sp"
+        android:text="@string/fragment_home_label_1" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/fragment_home_3"
+        android:id="@+id/fragment_home_2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom" />
